@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { headers } from 'next/headers';
 import { Suspense } from 'react';
+import { getBrandMetadata } from '@/lib/branding-metadata';
 import { getBaseUrl } from '@/lib/get-base-url';
+import { resolveAppLocale } from '@/lib/locale';
 import { Providers } from './Providers';
 import '@umami/react-zen/styles.full.css';
 import './global.css';
@@ -23,7 +25,10 @@ export default function ({ children }) {
   }
 
   return (
-    <html lang="en" className={`${inter.className} ${inter.variable}`}>
+    <html
+      lang={resolveAppLocale(undefined, process.env.defaultLocale)}
+      className={`${inter.className} ${inter.variable}`}
+    >
       <head>
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
@@ -50,9 +55,6 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     metadataBase: getBaseUrl(headerStore),
-    title: {
-      template: '%s | Umami',
-      default: 'Umami',
-    },
+    ...(await getBrandMetadata()),
   };
 }

@@ -18,7 +18,9 @@ export function useMessages() {
 
     const code = (error as ApiError)?.code;
 
-    return code ? getMessage(code) : error?.message || 'Unknown error';
+    return code && t.has(`message.${code}`)
+      ? getMessage(code)
+      : error?.message || t(messages.error);
   };
 
   return { t, messages, labels, getMessage, getErrorMessage };

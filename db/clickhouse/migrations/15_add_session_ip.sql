@@ -1,0 +1,1 @@
+ALTER TABLE website_event ADD COLUMN IF NOT EXISTS ip String DEFAULT '' AFTER city;

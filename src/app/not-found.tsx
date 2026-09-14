@@ -2,7 +2,7 @@
 import { Flexbox } from '@umami/react-zen';
 import { useMessages } from '@/components/hooks';
 
-export default function () {
+export default function NotFoundPage() {
   const { t, labels } = useMessages();
 
   return (

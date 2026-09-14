@@ -2,13 +2,16 @@ import { useEffect } from 'react';
 import { LOCALE_CONFIG } from '@/lib/constants';
 import { httpGet } from '@/lib/fetch';
 import { getDateLocale, getTextDirection } from '@/lib/lang';
+import { isSupportedLocale } from '@/lib/locale';
 import { setItem } from '@/lib/storage';
 import { setLocale, useApp } from '@/store/app';
 import enUS from '../../../public/intl/messages/en-US.json';
+import zhCN from '../../../public/intl/messages/zh-CN.json';
 import { useForceUpdate } from './useForceUpdate';
 
 const messages = {
   'en-US': enUS,
+  'zh-CN': zhCN,
 };
 
 const selector = (state: { locale: string }) => state.locale;
@@ -22,10 +25,14 @@ export function useLocale() {
   async function loadMessages(locale: string) {
     const { data } = await httpGet(`${process.env.basePath || ''}/intl/messages/${locale}.json`);
 
-    messages[locale] = data;
+    messages[locale] = {
+      label: { ...enUS.label, ...data?.label },
+      message: { ...enUS.message, ...data?.message },
+    };
   }
 
   async function saveLocale(value: string) {
+    if (!isSupportedLocale(value)) return;
     if (!messages[value]) {
       await loadMessages(value);
     }
@@ -46,7 +53,7 @@ export function useLocale() {
   }, [locale]);
 
   useEffect(() => {
-    document.documentElement.lang = locale.split('-')[0];
+    document.documentElement.lang = locale;
     document.documentElement.setAttribute('dir', getTextDirection(locale));
   }, [locale]);
 

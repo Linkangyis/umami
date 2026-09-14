@@ -4,6 +4,7 @@ import { parseRequest } from '@/lib/request';
 import { canDeleteWebsite, canViewWebsiteSection } from '@/permissions';
 import { deleteSession } from '@/queries/prisma';
 import { getLinkedDistinctIds, getLinkedSessionIds, getWebsiteSession } from '@/queries/sql';
+import { getWebsiteSessionIps } from '@/queries/sql/sessions/getWebsiteSessionIps';
 import { DELETE, GET } from './route';
 
 vi.mock('@/lib/db', () => ({
@@ -29,6 +30,8 @@ vi.mock('@/queries/sql', () => ({
   getWebsiteSession: vi.fn(),
 }));
 
+vi.mock('@/queries/sql/sessions/getWebsiteSessionIps', () => ({ getWebsiteSessionIps: vi.fn() }));
+
 const isRelationalOnlyMock = vi.mocked(isRelationalOnly);
 const parseRequestMock = vi.mocked(parseRequest);
 const canDeleteWebsiteMock = vi.mocked(canDeleteWebsite);
@@ -47,13 +50,14 @@ beforeEach(() => {
   getLinkedDistinctIdsMock.mockReset();
   getLinkedSessionIdsMock.mockReset();
   getWebsiteSessionMock.mockReset();
+  vi.mocked(getWebsiteSessionIps).mockReset();
 });
 
 test('GET returns not found when the session does not exist', async () => {
   parseRequestMock.mockResolvedValue({ auth: {}, error: undefined });
   canViewWebsiteSectionMock.mockResolvedValue(true);
-   isRelationalOnlyMock.mockReturnValue(true);
-   canDeleteWebsiteMock.mockResolvedValue(false);
+  isRelationalOnlyMock.mockReturnValue(true);
+  canDeleteWebsiteMock.mockResolvedValue(false);
   getWebsiteSessionMock.mockResolvedValue(undefined);
 
   const response = await GET(
@@ -171,4 +175,19 @@ test('DELETE removes the session when the request is valid', async () => {
   expect(response.status).toBe(200);
   await expect(response.json()).resolves.toEqual({ ok: true });
   expect(deleteSessionMock).toHaveBeenCalledWith('website-1', 'session-1');
+});
+
+test('GET only returns IP to an authenticated user and redacts it for public shares', async () => {
+  canViewWebsiteSectionMock.mockResolvedValue(true);
+  getWebsiteSessionMock.mockResolvedValue({ id: 'session-1', ip: 'unexpected-direct-value' });
+  getLinkedDistinctIdsMock.mockResolvedValue([]);
+  vi.mocked(getWebsiteSessionIps).mockResolvedValue({ 'session-1': '203.0.113.8' });
+  const request = new Request('http://localhost/api/websites/website-1/sessions/session-1');
+  const context = { params: Promise.resolve({ websiteId: 'website-1', sessionId: 'session-1' }) };
+  parseRequestMock.mockResolvedValue({ auth: { user: { id: 'user-1' } } });
+  expect(await (await GET(request, context)).json()).toMatchObject({ ip: '203.0.113.8' });
+  vi.mocked(getWebsiteSessionIps).mockClear();
+  parseRequestMock.mockResolvedValue({ auth: { shareToken: { websiteId: 'website-1' } } });
+  expect(await (await GET(request, context)).json()).not.toHaveProperty('ip');
+  expect(getWebsiteSessionIps).not.toHaveBeenCalled();
 });

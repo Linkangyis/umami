@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
+import { getBrandMetadata } from '@/lib/branding-metadata';
 import { App } from './App';
 
 export default function ({ children }) {
@@ -10,9 +11,6 @@ export default function ({ children }) {
   );
 }
 
-export const metadata: Metadata = {
-  title: {
-    template: '%s | Umami',
-    default: 'Umami',
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getBrandMetadata();
+}

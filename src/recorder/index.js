@@ -15,6 +15,20 @@ import { addCustomEvent, record } from 'rrweb';
 
   if (!website) return;
 
+  const isVisualEditor = () => {
+    if (window.__umamiEditor) return true;
+    const controller = window.parent !== window ? window.parent : window.opener;
+    if (!controller || controller.closed) return false;
+    if (new URL(location.href).searchParams.get('umami-editor') === website) return true;
+    try {
+      return sessionStorage.getItem('umami.editor.website') === website;
+    } catch {
+      return false;
+    }
+  };
+
+  if (isVisualEditor()) return;
+
   const host =
     hostUrl || '__COLLECT_API_HOST__' || currentScript.src.split('/').slice(0, -1).join('/');
   const hostBase = host.replace(/\/$/, '');
@@ -49,6 +63,7 @@ import { addCustomEvent, record } from 'rrweb';
   let replayLastChunkIndex = 0;
   let replayStopped = false;
   let heatmapStarted = false;
+  let heatmapUrlChange = null;
 
   const getSessionCache = () => window.umami?.getSession?.()?.cache;
 
@@ -107,6 +122,7 @@ import { addCustomEvent, record } from 'rrweb';
   const isReplayFullSnapshot = event => event?.type === RRWEB_EVENT_TYPE.FullSnapshot;
 
   const sendPayload = (type, payload, useKeepalive = false) => {
+    if (isVisualEditor()) return;
     const cache = getSessionCache();
 
     if (!cache) return;
@@ -585,28 +601,19 @@ import { addCustomEvent, record } from 'rrweb';
     const onUrlChange = () => {
       if (location.href === scrollUrl) return;
 
+      if (scrollTimer) {
+        clearTimeout(scrollTimer);
+        scrollTimer = null;
+      }
       flushScroll();
       scrollUrl = location.href;
+      maxScrollPct = 0;
       lastFlushedScrollPct = 0;
-
-      if (replayStopFn && !replayStopped) {
-        addCustomEvent('url-change', { url: scrollUrl });
-      }
+      // A new page has a visible viewport even if the visitor does not scroll.
+      onScroll();
     };
 
-    const hookHistory = method => {
-      const original = history[method];
-
-      history[method] = function (...args) {
-        const result = original.apply(this, args);
-        onUrlChange();
-        return result;
-      };
-    };
-
-    hookHistory('pushState');
-    hookHistory('replaceState');
-    window.addEventListener('popstate', onUrlChange);
+    heatmapUrlChange = onUrlChange;
     window.addEventListener('scroll', onScroll, { passive: true });
     document.addEventListener('click', onClick, { capture: true, passive: true });
 
@@ -631,6 +638,38 @@ import { addCustomEvent, record } from 'rrweb';
       flushScroll();
       flushHeatmap(true);
     });
+
+    window.addEventListener('pagehide', () => {
+      flushScroll();
+      flushHeatmap(true);
+    });
+  };
+
+  const beginNavigationCapture = () => {
+    let currentUrl = location.href;
+    const onUrlChange = () => {
+      if (location.href === currentUrl) return;
+
+      heatmapUrlChange?.();
+      currentUrl = location.href;
+
+      if (replayStopFn && !replayStopped) {
+        addCustomEvent('url-change', { url: currentUrl });
+      }
+    };
+
+    for (const method of ['pushState', 'replaceState']) {
+      const original = history[method];
+
+      history[method] = function (...args) {
+        const result = original.apply(this, args);
+        onUrlChange();
+        return result;
+      };
+    }
+
+    window.addEventListener('popstate', onUrlChange);
+    window.addEventListener('hashchange', onUrlChange);
   };
 
   const waitForSession = (callback, attempts = 0) => {
@@ -645,6 +684,7 @@ import { addCustomEvent, record } from 'rrweb';
   };
 
   const startCaptures = () => {
+    if (isVisualEditor()) return;
     const shouldRecordReplay = replayEnabled && shouldSample(sampleRate);
     const shouldRecordHeatmap = heatmapEnabled && shouldSample(heatmapSampleRate);
 
@@ -659,6 +699,8 @@ import { addCustomEvent, record } from 'rrweb';
     if (!shouldRecordHeatmap && !shouldRecordReplay) {
       return;
     }
+
+    beginNavigationCapture();
 
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {

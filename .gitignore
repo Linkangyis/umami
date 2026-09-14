@@ -25,6 +25,9 @@ next-env.d.ts
 /dist
 /generated
 /src/generated
+/src/tracker/editor.d.ts
+/src/tracker/page-path.d.ts
+/src/tracker/rules.d.ts
 pm2.yml
 
 # misc

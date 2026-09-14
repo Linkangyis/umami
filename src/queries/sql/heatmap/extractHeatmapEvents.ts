@@ -1,4 +1,5 @@
 import { HEATMAP_EVENT_TYPE } from '@/lib/constants';
+import { getRecorderPagePath } from '@/lib/recorder';
 
 const RRWEB_TYPE_INCREMENTAL = 3;
 const RRWEB_TYPE_META = 4;
@@ -23,15 +24,6 @@ interface ExtractHeatmapEventOptions {
   chunkIndex?: number;
 }
 
-function safePathname(href: unknown): string | null {
-  if (typeof href !== 'string') return null;
-  try {
-    return new URL(href).pathname || '/';
-  } catch {
-    return href.startsWith('/') ? href.split(/[?#]/)[0] : null;
-  }
-}
-
 export function extractHeatmapEvents(events: any[], _options: ExtractHeatmapEventOptions = {}) {
   if (!Array.isArray(events) || events.length === 0) return [];
 
@@ -46,7 +38,7 @@ export function extractHeatmapEvents(events: any[], _options: ExtractHeatmapEven
       typeof ev.timestamp === 'number' && Number.isFinite(ev.timestamp) ? ev.timestamp : null;
 
     if (ev.type === RRWEB_TYPE_META && ev.data) {
-      const path = safePathname(ev.data.href);
+      const path = getRecorderPagePath(ev.data.href);
       if (path) urlPath = path;
       if (typeof ev.data.width === 'number') viewportW = ev.data.width;
       if (typeof ev.data.height === 'number') viewportH = ev.data.height;
@@ -55,14 +47,14 @@ export function extractHeatmapEvents(events: any[], _options: ExtractHeatmapEven
 
     if (ev.type === RRWEB_TYPE_CUSTOM && ev.data) {
       if (ev.data.tag === 'url-change') {
-        const path = safePathname(ev.data.payload?.url);
+        const path = getRecorderPagePath(ev.data.payload?.url);
         if (path) urlPath = path;
         continue;
       }
 
       if (ev.data.tag === 'scroll-progress' && ev.data.payload) {
         const p = ev.data.payload;
-        const path = safePathname(p.url) ?? urlPath;
+        const path = getRecorderPagePath(p.url) ?? urlPath;
         if (path === null) continue;
         out.push({
           eventType: HEATMAP_EVENT_TYPE.scroll,

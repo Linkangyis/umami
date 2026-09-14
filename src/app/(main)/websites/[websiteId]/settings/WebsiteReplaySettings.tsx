@@ -159,7 +159,7 @@ export function WebsiteReplaySettings({ websiteId }: { websiteId: string }) {
           />
           {heatmapEnabled && (
             <Slider
-              label={`Heatmap ${t(labels.sampleRate).toLowerCase()}`}
+              label={t(labels.heatmapSampleRate)}
               min={0.05}
               max={1}
               step={0.05}
@@ -172,7 +172,7 @@ export function WebsiteReplaySettings({ websiteId }: { websiteId: string }) {
           {replayEnabled && (
             <>
               <Slider
-                label={`Replay ${t(labels.sampleRate).toLowerCase()}`}
+                label={t(labels.replaySampleRate)}
                 min={0.05}
                 max={1}
                 step={0.05}
@@ -188,8 +188,8 @@ export function WebsiteReplaySettings({ websiteId }: { websiteId: string }) {
                   onChange={v => setMaskLevel(v as typeof maskLevel)}
                   buttonProps={{ style: { maxWidth: '360px' } }}
                 >
-                  <ListItem id="strict">strict</ListItem>
-                  <ListItem id="moderate">moderate</ListItem>
+                  <ListItem id="strict">{t(labels.strictMask)}</ListItem>
+                  <ListItem id="moderate">{t(labels.moderateMask)}</ListItem>
                 </Select>
               </Column>
               <Column gap="1">
@@ -199,10 +199,10 @@ export function WebsiteReplaySettings({ websiteId }: { websiteId: string }) {
                   onChange={v => setMaxDuration(v as string)}
                   buttonProps={{ style: { maxWidth: '360px' } }}
                 >
-                  <ListItem id="300000">5 minutes</ListItem>
-                  <ListItem id="600000">10 minutes</ListItem>
-                  <ListItem id="900000">15 minutes</ListItem>
-                  <ListItem id="1200000">20 minutes</ListItem>
+                  <ListItem id="300000">{t(labels.minutesCount, { count: 5 })}</ListItem>
+                  <ListItem id="600000">{t(labels.minutesCount, { count: 10 })}</ListItem>
+                  <ListItem id="900000">{t(labels.minutesCount, { count: 15 })}</ListItem>
+                  <ListItem id="1200000">{t(labels.minutesCount, { count: 20 })}</ListItem>
                 </Select>
               </Column>
               <Column gap="1">

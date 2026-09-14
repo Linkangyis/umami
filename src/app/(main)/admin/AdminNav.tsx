@@ -2,12 +2,13 @@ import { Column, Row, Tooltip, TooltipTrigger } from '@umami/react-zen';
 import { IconLabel } from '@/components/common/IconLabel';
 import Link from '@/components/common/Link';
 import { NavMenu } from '@/components/common/NavMenu';
-import { useMessages, useNavigation } from '@/components/hooks';
-import { ArrowLeft, Globe, ShieldCheck, User, Users } from '@/components/icons';
+import { useLocale, useMessages, useNavigation } from '@/components/hooks';
+import { ArrowLeft, Globe, Palette, ShieldCheck, User, Users } from '@/components/icons';
 
 export function AdminNav({ onItemClick }: { onItemClick?: () => void }) {
   const { t, labels } = useMessages();
   const { pathname, renderUrl } = useNavigation();
+  const { locale } = useLocale();
 
   const items = [
     {
@@ -36,6 +37,12 @@ export function AdminNav({ onItemClick }: { onItemClick?: () => void }) {
           label: t(labels.security),
           path: '/admin/security',
           icon: <ShieldCheck />,
+        },
+        {
+          id: 'branding',
+          label: locale.startsWith('zh') ? '品牌设置' : 'Brand settings',
+          path: '/admin/branding',
+          icon: <Palette />,
         },
       ],
     },

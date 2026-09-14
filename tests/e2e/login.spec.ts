@@ -3,6 +3,9 @@ import { logout, umamiUser } from './helpers';
 
 test.describe('Login tests', () => {
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem('umami.locale', JSON.stringify('en-US'));
+    });
     await page.goto('/login');
   });
 

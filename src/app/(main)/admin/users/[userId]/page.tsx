@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getPageMetadata } from '@/lib/page-metadata';
 import { UserPage } from './UserPage';
 
 export default async function ({ params }: { params: Promise<{ userId: string }> }) {
@@ -7,6 +8,6 @@ export default async function ({ params }: { params: Promise<{ userId: string }>
   return <UserPage userId={userId} />;
 }
 
-export const metadata: Metadata = {
-  title: 'User',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getPageMetadata('User');
+}

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getPageMetadata } from '@/lib/page-metadata';
 import { getLink } from '@/queries/prisma';
 import { LinkPage } from './LinkPage';
 
@@ -13,6 +14,6 @@ export default async function ({ params }: { params: Promise<{ linkId: string }>
   return <LinkPage linkId={linkId} />;
 }
 
-export const metadata: Metadata = {
-  title: 'Link',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getPageMetadata('Link');
+}

@@ -2,6 +2,7 @@ import { expect, test } from 'vitest';
 import {
   canReplayEvents,
   getReplayEventCount,
+  getReplayPages,
   getReplayPlayerEvents,
   getReplayViewport,
   hasReplayableFullSnapshot,
@@ -10,6 +11,37 @@ import {
   REPLAY_EVENT_FRAGMENT_TYPE,
   restoreReplayEventFragments,
 } from './replay';
+
+test('getReplayPages distinguishes query and hash routes and skips duplicate checkout metadata', () => {
+  const events = [
+    { type: 4, timestamp: 1000, data: { href: 'https://bolebricks.com/?products/' } },
+    { type: 4, timestamp: 2000, data: { href: 'https://bolebricks.com/?products/&utm_source=ad' } },
+    {
+      type: 5,
+      timestamp: 3000,
+      data: { tag: 'url-change', payload: { url: '/?products-2/100.html' } },
+    },
+    { type: 5, timestamp: 4000, data: { tag: 'url-change', payload: { url: '/#/cart' } } },
+    { type: 4, timestamp: 5000, data: { href: '/about' } },
+    { type: 5, timestamp: 6000, data: { tag: 'url-change', payload: { url: '/?products/' } } },
+  ];
+
+  expect(getReplayPages(events)).toEqual([
+    { path: '/?products/', timestamp: 1000, offset: 0 },
+    { path: '/?products-2/100.html', timestamp: 3000, offset: 2000 },
+    { path: '/#/cart', timestamp: 4000, offset: 3000 },
+    { path: '/about', timestamp: 5000, offset: 4000 },
+    { path: '/?products/', timestamp: 6000, offset: 5000 },
+  ]);
+});
+
+test('getReplayPages preserves legacy paths without inventing missing pages', () => {
+  expect(getReplayPages([{ type: 4, timestamp: 1000, data: { href: '/' } }])).toEqual([
+    { path: '/', timestamp: 1000, offset: 0 },
+  ]);
+  expect(getReplayPages([{ type: 2, timestamp: 1000 }])).toEqual([]);
+  expect(getReplayPages(null)).toEqual([]);
+});
 
 const fullSnapshot = {
   type: 2,

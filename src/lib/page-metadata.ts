@@ -1,0 +1,57 @@
+import type { Metadata } from 'next';
+import { getLocale } from 'next-intl/server';
+
+const chineseTitles: Record<string, string> = {
+  Logout: '退出登录',
+  Login: '登录',
+  'Two-factor authentication': '双重验证',
+  'Test Console': '采集调试台',
+  Website: '站点',
+  Websites: '站点管理',
+  Link: '链接分析',
+  Links: '链接管理',
+  Users: '用户管理',
+  User: '用户',
+  Team: '团队',
+  Teams: '团队管理',
+  Security: '安全设置',
+  Dashboard: '仪表盘',
+  'Edit Link': '编辑链接',
+  'Edit Dashboard': '编辑仪表盘',
+  Events: '事件分析',
+  Pixels: '追踪像素',
+  Pixel: '像素分析',
+  Cohorts: '访客群组',
+  Replays: '访问回放',
+  'Edit Pixel': '编辑像素',
+  'Visitor engagement': '访客互动分析',
+  Compare: '时段对比',
+  Boards: '自定义看板',
+  'Session Replay': '访问回放',
+  'Traffic analysis': '流量分析',
+  'UTM Parameters': '推广渠道分析',
+  Profile: '个人资料',
+  Preferences: '偏好设置',
+  Revenue: '收入分析',
+  'Real-time': '实时分析',
+  Sessions: '访问记录',
+  Retention: '留存分析',
+  Session: '访客详情',
+  Segments: '细分人群',
+  Performance: '性能分析',
+  Settings: '设置',
+  Board: '看板',
+  Journeys: '访问路径',
+  'Design Board': '设计看板',
+  Heatmaps: '热力图',
+  'Edit Board': '编辑看板',
+  Goals: '转化目标',
+  Funnels: '转化漏斗',
+  Insights: '多维分析',
+  Attribution: '归因分析',
+};
+
+export async function getPageMetadata(title: string): Promise<Metadata> {
+  const locale = await getLocale();
+  return { title: locale.startsWith('zh') ? chineseTitles[title] || title : title };
+}

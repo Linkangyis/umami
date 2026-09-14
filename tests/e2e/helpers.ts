@@ -41,6 +41,8 @@ export async function loginPage(page: Page, request: APIRequestContext): Promise
 
   await page.addInitScript(token => {
     window.localStorage.setItem('umami.auth', JSON.stringify(token));
+    // Legacy scenarios assert English labels; this is an explicit test-user preference.
+    window.localStorage.setItem('umami.locale', JSON.stringify('en-US'));
   }, auth.token);
 
   return auth;

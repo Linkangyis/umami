@@ -22,23 +22,26 @@ export async function getRealtimeData(websiteId: string, filters: QueryFilters) 
 
   const uniques = new Set();
 
-  const { countries, urls, referrers, events } = activity.reverse().reduce(
+  const { countries, regions, urls, referrers, events } = activity.reverse().reduce(
     (
-      obj: { countries: any; urls: any; referrers: any; events: any },
+      obj: { countries: any; regions: any; urls: any; referrers: any; events: any },
       event: {
         sessionId: string;
         urlPath: string;
         referrerDomain: string;
         country: string;
+        region?: string;
         eventName: string;
       },
     ) => {
-      const { countries, urls, referrers, events } = obj;
-      const { sessionId, urlPath, referrerDomain, country, eventName } = event;
+      const { countries, regions, urls, referrers, events } = obj;
+      const { sessionId, urlPath, referrerDomain, country, region, eventName } = event;
 
       if (!uniques.has(sessionId)) {
         uniques.add(sessionId);
         increment(countries, country);
+        if (region && country)
+          increment(regions, region.includes('-') ? region : `${country}-${region}`);
 
         events.push({ __type: 'session', ...event });
       }
@@ -52,6 +55,7 @@ export async function getRealtimeData(websiteId: string, filters: QueryFilters) 
     },
     {
       countries: {},
+      regions: {},
       urls: {},
       referrers: {},
       events: [],
@@ -60,6 +64,7 @@ export async function getRealtimeData(websiteId: string, filters: QueryFilters) 
 
   return {
     countries,
+    regions,
     urls,
     referrers,
     events: events.reverse(),

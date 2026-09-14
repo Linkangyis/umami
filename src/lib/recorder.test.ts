@@ -1,5 +1,28 @@
 import { describe, expect, test } from 'vitest';
-import { getRecorderConfig, getRecorderEnabled } from './recorder';
+import { getRecorderConfig, getRecorderEnabled, getRecorderPagePath } from './recorder';
+
+describe('getRecorderPagePath', () => {
+  test.each([
+    ['https://bolebricks.com/?products/', '/?products/'],
+    ['https://bolebricks.com/?products-2/100.html', '/?products-2/100.html'],
+    ['/?products/&utm_source=ad&gclid=123', '/?products/'],
+    ['/about?category=bricks&utm_campaign=sale&sort=price', '/about?category=bricks&sort=price'],
+    ['/about', '/about'],
+    ['https://example.com/#/products?category=bricks&utm_source=ad', '/#/products?category=bricks'],
+    ['/#!/products/100', '/#!/products/100'],
+    ['/about#team', '/about#team'],
+    ['/?path=%2Fproducts%2F100&token=a%2Bb', '/?path=%2Fproducts%2F100&token=a%2Bb'],
+    ['/?utm_source=ad&fbclid=123', '/'],
+  ])('preserves page identity for %s', (href, path) => {
+    expect(getRecorderPagePath(href)).toBe(path);
+  });
+
+  test('does not invent a URL for malformed or missing metadata', () => {
+    expect(getRecorderPagePath(undefined)).toBeNull();
+    expect(getRecorderPagePath('not a url')).toBeNull();
+    expect(getRecorderPagePath('javascript:alert(1)')).toBeNull();
+  });
+});
 
 describe('getRecorderConfig', () => {
   test('returns an empty object for non-object values', () => {

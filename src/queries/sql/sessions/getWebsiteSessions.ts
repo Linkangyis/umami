@@ -9,14 +9,24 @@ const QUALIFIED_FILTER_COLUMNS = Object.fromEntries(
   Object.entries(FILTER_COLUMNS).map(([key, value]) => [key, `website_event.${value}`]),
 );
 
-export async function getWebsiteSessions(...args: [websiteId: string, filters: QueryFilters]) {
+interface SessionQueryOptions {
+  includeIpSearch?: boolean;
+}
+
+export async function getWebsiteSessions(
+  ...args: [websiteId: string, filters: QueryFilters, options?: SessionQueryOptions]
+) {
   return runQuery({
     [PRISMA]: () => relationalQuery(...args),
     [CLICKHOUSE]: () => clickhouseQuery(...args),
   });
 }
 
-async function relationalQuery(websiteId: string, filters: QueryFilters) {
+async function relationalQuery(
+  websiteId: string,
+  filters: QueryFilters,
+  { includeIpSearch = false }: SessionQueryOptions = {},
+) {
   const { pagedRawQuery, parseFilters } = prisma;
   const { search } = filters;
   const { filterQuery, dateQuery, cohortQuery, queryParams } = parseFilters({
@@ -30,7 +40,8 @@ async function relationalQuery(websiteId: string, filters: QueryFilters) {
            or city ilike {{search}}
            or browser ilike {{search}}
            or os ilike {{search}}
-           or device ilike {{search}})`
+           or device ilike {{search}}
+           ${includeIpSearch ? 'or session.ip ilike {{search}}' : ''})`
     : '';
 
   return pagedRawQuery(
@@ -81,7 +92,11 @@ async function relationalQuery(websiteId: string, filters: QueryFilters) {
   );
 }
 
-async function clickhouseQuery(websiteId: string, filters: QueryFilters) {
+async function clickhouseQuery(
+  websiteId: string,
+  filters: QueryFilters,
+  { includeIpSearch = false }: SessionQueryOptions = {},
+) {
   const { pagedRawQuery, parseFilters, getDateStringSQL } = clickhouse;
   const { search } = filters;
   const { filterQuery, dateQuery, cohortQuery, queryParams } = parseFilters(
@@ -99,7 +114,8 @@ async function clickhouseQuery(websiteId: string, filters: QueryFilters) {
            or (positionCaseInsensitive(website_event.city, {search:String}) > 0)
            or (positionCaseInsensitive(website_event.browser, {search:String}) > 0)
            or (positionCaseInsensitive(website_event.os, {search:String}) > 0)
-           or (positionCaseInsensitive(website_event.device, {search:String}) > 0))`
+           or (positionCaseInsensitive(website_event.device, {search:String}) > 0)
+           ${includeIpSearch ? 'or (positionCaseInsensitive(website_event.ip, {search:String}) > 0)' : ''})`
     : '';
   const normalizedFilterQuery = filterQuery.replace(
     /referrer_domain != hostname/g,
@@ -108,7 +124,10 @@ async function clickhouseQuery(websiteId: string, filters: QueryFilters) {
 
   let sql = '';
 
-  if (EVENT_COLUMNS.some(item => Object.keys(filters).includes(item))) {
+  if (
+    EVENT_COLUMNS.some(item => Object.keys(filters).includes(item)) ||
+    (search && includeIpSearch)
+  ) {
     sql = `
     select
       session_id as id,

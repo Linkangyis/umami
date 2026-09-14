@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getBrandMetadata } from '@/lib/branding-metadata';
 import { SettingsLayout } from './SettingsLayout';
 
 export default function ({ children }) {
@@ -9,9 +10,6 @@ export default function ({ children }) {
   return <SettingsLayout>{children}</SettingsLayout>;
 }
 
-export const metadata: Metadata = {
-  title: {
-    template: '%s | Settings | Umami',
-    default: 'Settings | Umami',
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getBrandMetadata('设置');
+}

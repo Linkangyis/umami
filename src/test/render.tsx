@@ -10,6 +10,7 @@ import userEvent from '@testing-library/user-event';
 import { RouterProvider, ZenProvider } from '@umami/react-zen';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ReactElement, ReactNode } from 'react';
+import { setLocale as setAppLocale } from '@/store/app';
 import enUS from '../../public/intl/messages/en-US.json';
 import { setTestUrl } from './navigation';
 
@@ -65,6 +66,7 @@ export function render(
   }: TestRenderOptions = {},
 ) {
   setTestUrl(route);
+  setAppLocale(locale);
 
   return {
     queryClient,

@@ -1,5 +1,5 @@
+import { useMessages, useNavigation } from '@/components/hooks';
 import { Copy } from '@/components/icons';
-import { useNavigation } from '@/components/hooks';
 import { DialogButton } from '@/components/input/DialogButton';
 import type { Board } from '@/lib/types';
 import { BoardCloneForm } from './BoardCloneForm';
@@ -12,6 +12,7 @@ export function BoardCloneButton({
   showLabel?: boolean;
 }) {
   const { router, renderUrl } = useNavigation();
+  const { t, labels } = useMessages();
 
   const handleSave = (board: Board) => {
     router.push(renderUrl(`/boards/${board.id}/design`, false));
@@ -20,9 +21,9 @@ export function BoardCloneButton({
   return (
     <DialogButton
       icon={<Copy />}
-      label={showLabel ? 'Clone' : undefined}
-      title="Clone board"
-      aria-label="Clone"
+      label={showLabel ? t(labels.clone) : undefined}
+      title={t(labels.cloneBoard)}
+      aria-label={t(labels.clone)}
       variant={showLabel ? undefined : 'quiet'}
       width="600px"
     >

@@ -19,7 +19,7 @@ interface RevenueMetricItem {
 }
 
 export function RevenueMetricsBar({ data, currency }: RevenueMetricsBarProps) {
-  const { t, labels } = useMessages();
+  const { t, labels, messages } = useMessages();
   const { isAllTime } = useDateRange();
   const { sum, count, average, unique_count, arpu, comparison } = data;
 
@@ -35,8 +35,7 @@ export function RevenueMetricsBar({ data, currency }: RevenueMetricsBarProps) {
       label: t(labels.aov),
       tooltip: (
         <>
-          <div>Average Order Value</div>
-          <div>(Total Revenue / Orders)</div>
+          <div>{t(messages.averageOrderValueDescription)}</div>
         </>
       ),
       change: comparison ? average - comparison.average : 0,
@@ -47,8 +46,7 @@ export function RevenueMetricsBar({ data, currency }: RevenueMetricsBarProps) {
       label: t(labels.arpu),
       tooltip: (
         <>
-          <div>Average Revenue Per User</div>
-          <div>(Total Revenue / All Sessions)</div>
+          <div>{t(messages.averageRevenuePerUserDescription)}</div>
         </>
       ),
       change: comparison ? arpu - (comparison.arpu ?? 0) : 0,

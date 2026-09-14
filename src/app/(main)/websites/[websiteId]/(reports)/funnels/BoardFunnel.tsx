@@ -1,8 +1,9 @@
 import { Text } from '@umami/react-zen';
 import { EmptyPlaceholder } from '@/components/common/EmptyPlaceholder';
 import { LoadingPanel } from '@/components/common/LoadingPanel';
-import { Link2Off } from '@/components/icons';
+import { useLocale, useMessages } from '@/components/hooks';
 import { useReportQuery } from '@/components/hooks/queries/useReportQuery';
+import { Link2Off } from '@/components/icons';
 import { Funnel } from './Funnel';
 
 export function BoardFunnel({
@@ -14,6 +15,9 @@ export function BoardFunnel({
   reportId?: string;
   isPreview?: boolean;
 }) {
+  const { locale } = useLocale();
+  const cn = locale.startsWith('zh');
+  const { t, messages } = useMessages();
   const { data, isLoading, error, isFetching } = useReportQuery(reportId || '');
 
   if (!reportId) {
@@ -21,13 +25,15 @@ export function BoardFunnel({
       <EmptyPlaceholder
         {...(isPreview
           ? {
-              title: 'Select a funnel',
-              description: 'Choose a saved funnel to preview.',
+              title: cn ? '选择漏斗' : 'Select a funnel',
+              description: cn
+                ? '选择已保存的漏斗，预览各步骤的转化情况。'
+                : 'Choose a saved funnel to preview.',
             }
           : {
               icon: <Link2Off />,
-              title: 'Reconnect funnel',
-              description: 'Choose a funnel for this website.',
+              title: cn ? '重新关联漏斗' : 'Reconnect funnel',
+              description: cn ? '为此站点重新选择一个漏斗。' : 'Choose a funnel for this website.',
             })}
       />
     );
@@ -36,8 +42,12 @@ export function BoardFunnel({
   if (data && (data.type !== 'funnel' || data.websiteId !== websiteId)) {
     return (
       <EmptyPlaceholder
-        title="Funnel unavailable"
-        description="This saved funnel is no longer available for the selected website."
+        title={t(messages.funnelUnavailable)}
+        description={
+          cn
+            ? '此漏斗已被删除，或不属于当前站点。'
+            : 'This saved funnel is no longer available for the selected website.'
+        }
       />
     );
   }
@@ -54,7 +64,7 @@ export function BoardFunnel({
           allowEdit={false}
         />
       ) : (
-        <Text color="muted">Funnel unavailable</Text>
+        <Text color="muted">{t(messages.funnelUnavailable)}</Text>
       )}
     </LoadingPanel>
   );

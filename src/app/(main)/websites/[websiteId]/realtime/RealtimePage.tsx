@@ -50,7 +50,10 @@ export function RealtimePage({ websiteId }: { websiteId: string }) {
           <RealtimeCountries data={countries} />
         </Panel>
         <Panel gridColumn={isMobile ? null : 'span 2'} padding="0">
-          <WorldMap data={countries} />
+          <WorldMap
+            data={countries}
+            regionData={Object.entries(data.regions || {}).map(([x, y]) => ({ x, y }))}
+          />
         </Panel>
       </GridRow>
     </Grid>

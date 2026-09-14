@@ -1,6 +1,7 @@
 import { isRelationalOnly } from '@/lib/db';
 import { parseRequest } from '@/lib/request';
 import { json } from '@/lib/response';
+import { getPublicAppBranding } from '@/queries/prisma/branding';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,7 @@ export async function GET(request: Request) {
   }
 
   return json({
+    branding: await getPublicAppBranding(),
     cloudMode: !!process.env.CLOUD_MODE,
     faviconUrl: process.env.FAVICON_URL,
     linksUrl: process.env.LINKS_URL,

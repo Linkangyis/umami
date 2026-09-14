@@ -85,9 +85,13 @@ const apiHeaders = [
   },
 ];
 
+// MCP and token management set their own strict origin and no-store response headers.
+const apiHeadersSource = (prefix: string) =>
+  `${prefix}/:path((?!mcp(?:/|$)|me/mcp-tokens(?:/|$)).*)`;
+
 const headers = [
   {
-    source: '/api/:path*',
+    source: apiHeadersSource('/api'),
     headers: apiHeaders,
   },
   {
@@ -133,7 +137,7 @@ if (isRelativeUrl(apiUrl)) {
 
   if (normalizedApiUrl !== '/' && normalizedApiUrl !== '/api') {
     headers.push({
-      source: `${normalizedApiUrl}/:path*`,
+      source: apiHeadersSource(normalizedApiUrl),
       headers: apiHeaders,
     });
 

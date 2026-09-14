@@ -23,7 +23,7 @@ import { ListTable } from '@/components/metrics/ListTable';
 import { MetricLabel } from '@/components/metrics/MetricLabel';
 import { PerformanceCard } from '@/components/metrics/PerformanceCard';
 import { renderDateLabels } from '@/lib/charts';
-import { CHART_COLORS, WEB_VITALS_THRESHOLDS } from '@/lib/constants';
+import { CHART_COLORS } from '@/lib/constants';
 import { generateTimeSeries } from '@/lib/date';
 import { formatLongNumber } from '@/lib/format';
 import styles from './Performance.module.css';
@@ -36,14 +36,6 @@ export interface PerformanceProps {
 }
 
 const METRICS = ['lcp', 'inp', 'cls', 'fcp', 'ttfb'] as const;
-
-const METRIC_LABELS: Record<string, string> = {
-  lcp: 'Largest Contentful Paint',
-  inp: 'Interaction to Next Paint',
-  cls: 'Cumulative Layout Shift',
-  fcp: 'First Contentful Paint',
-  ttfb: 'Time to First Byte',
-};
 
 function formatMetricValue(metric: string, value: number): string {
   if (metric === 'cls') return value.toFixed(3);
@@ -136,7 +128,6 @@ export function Performance({ websiteId, startDate, endDate, unit }: Performance
 
   const renderXLabel = useCallback(renderDateLabels(unit, locale), [unit, locale]);
 
-  const threshold = WEB_VITALS_THRESHOLDS[selectedMetric as keyof typeof WEB_VITALS_THRESHOLDS];
   const isCls = selectedMetric === 'cls';
   const metricLabel = t(labels[selectedMetric]) || selectedMetric.toUpperCase();
   const formatListCount = isCls
@@ -147,13 +138,15 @@ export function Performance({ websiteId, startDate, endDate, unit }: Performance
     <Column gap>
       <Grid columns="280px" gap>
         <Select
-          label="Percentile"
+          label={t(labels.percentile)}
           value={selectedPercentile}
           onChange={value => setSelectedPercentile(value as 'p50' | 'p75' | 'p95')}
         >
           {PERCENTILES.map(({ id, label }) => (
             <ListItem key={id} id={id}>
-              {label}
+              {locale.startsWith('zh')
+                ? `${id} — ${id === 'p50' ? t(labels.median) : `第 ${id.slice(1)} 百分位`}`
+                : label}
             </ListItem>
           ))}
         </Select>
@@ -177,7 +170,7 @@ export function Performance({ websiteId, startDate, endDate, unit }: Performance
             <Panel>
               <Column gap="4" padding="4">
                 <Row justifyContent="space-between" alignItems="center">
-                  <Text weight="bold">{METRIC_LABELS[selectedMetric]}</Text>
+                  <Text weight="bold">{t(labels[selectedMetric])}</Text>
                   <Row gap="4">
                     <Text size="sm" className={styles.sampleCount}>
                       {t(labels.sampleSize)}: {formatLongNumber(data.summary?.count || 0)}

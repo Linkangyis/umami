@@ -21,7 +21,7 @@ export function LookupField({
   onValueChange,
   ...props
 }: LookupFieldProps) {
-  const { t, messages } = useMessages();
+  const { t, labels, messages } = useMessages();
   const [search, setSearch] = useState(value);
   const searchValue = useDebounce(search, 300);
   const startDate = subMonths(endOfDay(new Date()), 6);
@@ -45,7 +45,7 @@ export function LookupField({
 
   return (
     <ComboBox
-      aria-label="LookupField"
+      aria-label={t(labels.search)}
       {...props}
       items={items}
       inputValue={value}

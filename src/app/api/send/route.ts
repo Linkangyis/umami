@@ -10,8 +10,15 @@ import { fetchWebsite } from '@/lib/load';
 import { parseRequest } from '@/lib/request';
 import { badRequest, forbidden, json, serverError } from '@/lib/response';
 import { anyObjectParam, urlOrPathParam } from '@/lib/schema';
+import { getStoredSessionIp } from '@/lib/session-ip';
 import { safeDecodeURI, safeDecodeURIComponent } from '@/lib/url';
-import { createSession, saveEvent, saveSessionData, saveSessionLink, updateSession } from '@/queries/sql';
+import {
+  createSession,
+  saveEvent,
+  saveSessionData,
+  saveSessionLink,
+  updateSession,
+} from '@/queries/sql';
 
 interface Cache {
   websiteId: string;
@@ -19,6 +26,7 @@ interface Cache {
   visitId: string;
   iat: number;
   sessionLinkId?: string;
+  ipStored?: boolean;
 }
 
 // Reject strings whose first character is a spreadsheet formula trigger to
@@ -158,9 +166,11 @@ export async function POST(request: Request) {
     const sessionId = uuid(sourceId, ip, userAgent, sessionSalt);
     const sessionDrift = !!websiteId && !!cache?.sessionId && cache.sessionId !== sessionId;
     const shouldEnsureSession = !clickhouse.enabled && sessionDrift;
+    const storedIp = getStoredSessionIp(ip);
+    const shouldStoreIp = !clickhouse.enabled && !!storedIp && !cache?.ipStored;
 
     // Create a session if not found
-    if ((!clickhouse.enabled && !cache?.sessionId) || shouldEnsureSession) {
+    if ((!clickhouse.enabled && !cache?.sessionId) || shouldEnsureSession || shouldStoreIp) {
       await createSession({
         id: sessionId,
         websiteId: sourceId,
@@ -172,6 +182,7 @@ export async function POST(request: Request) {
         country,
         region,
         city,
+        ip: storedIp,
         distinctId: id,
         createdAt,
       });
@@ -275,6 +286,7 @@ export async function POST(request: Request) {
         referrerDomain,
 
         // Session
+        ip: storedIp,
         distinctId: id,
         browser,
         os,
@@ -354,6 +366,7 @@ export async function POST(request: Request) {
         urlPath,
         pageTitle: safeDecodeURIComponent(title),
         eventType: EVENT_TYPE.performance,
+        ip: storedIp,
         browser,
         os,
         device,
@@ -372,7 +385,15 @@ export async function POST(request: Request) {
     }
 
     const token = createToken(
-      { websiteId, sessionId, visitId, iat, sessionLinkId, type: CACHE_TOKEN_TYPE },
+      {
+        websiteId,
+        sessionId,
+        visitId,
+        iat,
+        sessionLinkId,
+        ipStored: !!storedIp,
+        type: CACHE_TOKEN_TYPE,
+      },
       secret(),
     );
 

@@ -2,8 +2,9 @@
 import { Column } from '@umami/react-zen';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Empty } from '@/components/common/Empty';
-import { useMobile } from '@/components/hooks';
-import { getReplayPlayerEvents, getReplayViewport } from '@/lib/replay';
+import { useMessages, useMobile } from '@/components/hooks';
+import { formatTime } from '@/lib/format';
+import { getReplayPages, getReplayPlayerEvents, getReplayViewport } from '@/lib/replay';
 import 'rrweb-player/dist/style.css';
 
 const DEFAULT_REPLAY_ASPECT_RATIO = 9 / 16;
@@ -28,12 +29,15 @@ export function ReplayPlayer({ events }: { events: any[] }) {
   const playerRootRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
   const [playerError, setPlayerError] = useState(false);
+  const [playerReady, setPlayerReady] = useState(false);
   const [availableWidth, setAvailableWidth] = useState(0);
-  const [viewportHeight, setViewportHeight] = useState(
-    () => (typeof window !== 'undefined' ? window.innerHeight : 0),
+  const [viewportHeight, setViewportHeight] = useState(() =>
+    typeof window !== 'undefined' ? window.innerHeight : 0,
   );
   const { isMobile, isPhone } = useMobile();
+  const { t, labels } = useMessages();
   const replayEvents = useMemo(() => getReplayPlayerEvents(events), [events]);
+  const replayPages = useMemo(() => getReplayPages(replayEvents), [replayEvents]);
   const replayViewport = useMemo(() => getReplayViewport(replayEvents), [replayEvents]);
   const canReplay = replayEvents.length >= 2;
   const showUnavailable = !events?.length || !canReplay || playerError;
@@ -42,9 +46,7 @@ export function ReplayPlayer({ events }: { events: any[] }) {
   const replayAspectRatio = replayViewport
     ? replayViewport.height / replayViewport.width
     : DEFAULT_REPLAY_ASPECT_RATIO;
-  const isPortraitReplay = replayViewport
-    ? replayViewport.height > replayViewport.width
-    : false;
+  const isPortraitReplay = replayViewport ? replayViewport.height > replayViewport.width : false;
   const fittedAspectRatio = isPortraitReplay
     ? Math.min(Math.max(replayAspectRatio, DEFAULT_REPLAY_ASPECT_RATIO), 2.25)
     : Math.min(Math.max(replayAspectRatio, DEFAULT_REPLAY_ASPECT_RATIO), 1.5);
@@ -94,6 +96,7 @@ export function ReplayPlayer({ events }: { events: any[] }) {
     const playerRoot = playerRootRef.current;
 
     setPlayerError(false);
+    setPlayerReady(false);
 
     if (playerRef.current) {
       destroyReplayPlayer(playerRef.current);
@@ -133,6 +136,7 @@ export function ReplayPlayer({ events }: { events: any[] }) {
           }
 
           playerRef.current = player;
+          setPlayerReady(true);
         } catch {
           playerRoot.replaceChildren();
 
@@ -160,8 +164,41 @@ export function ReplayPlayer({ events }: { events: any[] }) {
   }, [canReplay, replayEvents, playerWidth, playerHeight]);
 
   return (
-    <Column alignItems="center" width="100%">
-      <div ref={playerWrapperRef} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+    <Column alignItems="center" width="100%" gap="3">
+      {replayPages.length > 0 && !showUnavailable && (
+        <select
+          aria-label={t(labels.pages)}
+          data-test="replay-page-select"
+          disabled={!playerReady}
+          defaultValue=""
+          onChange={event => {
+            const page = replayPages[Number(event.target.value)];
+            if (page) playerRef.current?.goto(page.offset, true);
+          }}
+          style={{
+            width: playerWidth,
+            maxWidth: '100%',
+            padding: '8px 12px',
+            borderRadius: '8px',
+            border: '1px solid var(--base300)',
+            background: 'var(--base75)',
+            color: 'var(--base900)',
+          }}
+        >
+          <option value="" disabled>
+            {t(labels.pages)} ({replayPages.length})
+          </option>
+          {replayPages.map((page, index) => (
+            <option key={`${page.timestamp}:${index}`} value={index}>
+              {formatTime(page.offset / 1000)} · {page.path}
+            </option>
+          ))}
+        </select>
+      )}
+      <div
+        ref={playerWrapperRef}
+        style={{ width: '100%', display: 'flex', justifyContent: 'center' }}
+      >
         <div
           style={{
             width: playerWidth,

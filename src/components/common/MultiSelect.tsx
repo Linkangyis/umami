@@ -1,5 +1,6 @@
 import { Button, Icon, Menu, MenuItem, MenuTrigger, SearchField } from '@umami/react-zen';
 import { Children, type ReactNode } from 'react';
+import { useMessages } from '@/components/hooks';
 import { ChevronRight } from '@/components/icons';
 
 const listStyle = {
@@ -34,12 +35,13 @@ export function MultiSelect({
   onChange,
   searchValue,
   onSearch,
-  placeholder = 'Select an item',
+  placeholder,
   allowSearch,
   renderEmptyState,
   renderValue,
   children,
 }: MultiSelectProps) {
+  const { t, labels } = useMessages();
   const displayValue = renderValue
     ? renderValue(value)
     : value.length > 0
@@ -54,7 +56,7 @@ export function MultiSelect({
         style={{ maxWidth: '100%', overflow: 'hidden' }}
       >
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {displayValue ?? placeholder}
+          {displayValue ?? placeholder ?? t(labels.select)}
         </span>
         <Icon rotate={90} size="sm" aria-hidden="true">
           <ChevronRight />
@@ -74,6 +76,8 @@ export function MultiSelect({
       >
         {allowSearch && (
           <SearchField
+            aria-label={t(labels.search)}
+            placeholder={t(labels.search)}
             value={searchValue}
             onSearch={onSearch}
             autoFocus

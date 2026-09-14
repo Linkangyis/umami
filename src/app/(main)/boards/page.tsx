@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
+import { getPageMetadata } from '@/lib/page-metadata';
 import { BoardsPage } from './BoardsPage';
 
 export default function () {
   return <BoardsPage />;
 }
 
-export const metadata: Metadata = {
-  title: 'Boards',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getPageMetadata('Boards');
+}

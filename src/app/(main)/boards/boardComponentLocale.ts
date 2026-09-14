@@ -1,0 +1,100 @@
+const chinese: Record<string, string> = {
+  Overview: '概览',
+  Tables: '数据表',
+  Visualization: '可视化图表',
+  Content: '内容',
+  Traffic: '流量分析',
+  Events: '事件分析',
+  Behavior: '行为分析',
+  Realtime: '实时分析',
+  Growth: '增长分析',
+  Revenue: '收入分析',
+  Other: '其他',
+  Path: '页面路径',
+  URL: '完整网址',
+  'Entry page': '入口页面',
+  'Exit page': '退出页面',
+  Title: '页面标题',
+  Query: '查询参数',
+  Referrer: '访问来源',
+  Channel: '流量渠道',
+  Country: '国家或地区',
+  Region: '省/州/地区',
+  City: '城市',
+  Browser: '浏览器',
+  OS: '操作系统',
+  Device: '设备类型',
+  Language: '语言',
+  Screen: '屏幕分辨率',
+  'UTM Source': 'UTM 来源',
+  'UTM Medium': 'UTM 媒介',
+  'UTM Campaign': 'UTM 活动',
+  'UTM Content': 'UTM 内容',
+  'UTM Term': 'UTM 关键词',
+  Event: '事件',
+  Hostname: '主机名',
+  Source: '来源',
+  Medium: '媒介',
+  Campaign: '活动',
+  Term: '关键词',
+  Referrers: '访问来源',
+  Channels: '流量渠道',
+  Countries: '国家或地区',
+  Regions: '省/州/地区',
+  'Metrics bar': '流量指标卡',
+  'Event metrics bar': '事件指标卡',
+  Goal: '转化目标',
+  'Saved goal': '已保存的目标',
+  Funnel: '转化漏斗',
+  'Saved funnel': '已保存的漏斗',
+  'Visitors chart': '访客趋势',
+  'UTM param': 'UTM 参数',
+  Rows: '显示行数',
+  'Realtime metrics bar': '实时指标卡',
+  'Realtime chart': '实时趋势图',
+  'Active users': '当前在线访客',
+  'Revenue metrics bar': '收入指标卡',
+  Currency: '货币',
+  'Revenue chart': '收入趋势图',
+  'Revenue metrics table': '收入明细表',
+  'Metric type': '分析维度',
+  'Metrics table': '指标明细表',
+  'World map': '访客地域地图',
+  'Weekly traffic': '每周流量热力图',
+  'Events chart': '事件趋势图',
+  Text: '文本内容',
+  'Key metrics: views, visitors, bounces, time on site':
+    '集中展示浏览量、访客数、跳出率和访问时长。',
+  'Key metrics: visitors, visits, events, unique events':
+    '集中展示访客数、访问次数、事件次数和事件种类。',
+  'Conversion progress for a saved goal': '查看已保存目标的转化进度。',
+  'Step conversion for a saved funnel': '查看已保存漏斗中各步骤的转化情况。',
+  'Page views and visitors over time': '展示浏览量和访客数随时间的变化。',
+  'List and pie chart for one UTM parameter': '通过明细表和饼图分析一个 UTM 参数。',
+  'Live views, visitors, events, and countries': '查看实时浏览量、访客、事件和访问地区。',
+  'Live visitors and page views by minute': '按分钟查看实时访客和浏览量。',
+  'Current visitors online': '显示此刻在线的访客数量。',
+  'Revenue summary: total, AOV, ARPU, orders, and customers':
+    '汇总总收入、客单价、人均收入、订单和客户数量。',
+  'Revenue over time': '展示收入随时间的变化。',
+  'Revenue breakdown by source or location': '按来源或地区分析收入构成。',
+  'Table of metrics by dimension': '按选定维度展示指标明细。',
+  'Geographic distribution of visitors': '查看访客的地域分布，支持美国州、中国省级地区和欧洲国家。',
+  'Traffic heatmap by day and hour': '按星期和小时查看流量高峰。',
+  'Custom events over time': '展示自定义事件随时间的变化。',
+  'Free-form text content': '添加文字说明，为看板补充背景信息。',
+};
+
+export function translateBoardComponentText(value: string, locale?: string): string {
+  if (!locale?.startsWith('zh')) return value;
+  if (chinese[value]) return chinese[value];
+  const currency = value.match(/^([A-Z]{3}) - /)?.[1];
+  if (currency) {
+    try {
+      return `${currency} · ${new Intl.DisplayNames(['zh-CN'], { type: 'currency' }).of(currency)}`;
+    } catch {
+      return value;
+    }
+  }
+  return value;
+}

@@ -2,7 +2,7 @@ import { Column, Grid, Icon, Label, Row } from '@umami/react-zen';
 import type { ReactNode } from 'react';
 import { DateDistance } from '@/components/common/DateDistance';
 import { TypeIcon } from '@/components/common/TypeIcon';
-import { useFormat, useLocale, useMessages, useRegionNames } from '@/components/hooks';
+import { useFormat, useLocale, useMessages, useRegionNames, useShare } from '@/components/hooks';
 import { Calendar, KeyRound, Landmark, MapPin } from '@/components/icons';
 import { Network } from '@/components/svg';
 
@@ -13,6 +13,7 @@ export function SessionInfo({ data }) {
   const { getRegionName } = useRegionNames(locale);
   const distinctId = data?.distinctId?.trim();
   const stitchedSessionCount = data?.stitchedSessionCount;
+  const share = useShare();
 
   return (
     <Grid columns="repeat(auto-fit, minmax(200px, 1fr)" gap>
@@ -23,6 +24,12 @@ export function SessionInfo({ data }) {
       <Info label={t(labels.lastSeen)} icon={<Calendar />}>
         <DateDistance date={new Date(data.lastAt)} />
       </Info>
+
+      {!share && (
+        <Info label="IP" icon={<Network />}>
+          <span style={{ overflowWrap: 'anywhere' }}>{data?.ip || '—'}</span>
+        </Info>
+      )}
 
       <Info label={t(labels.firstSeen)} icon={<Calendar />}>
         <DateDistance date={new Date(data.firstAt)} />
@@ -56,7 +63,7 @@ export function SessionInfo({ data }) {
       </Info>
 
       {distinctId && stitchedSessionCount > 1 && (
-        <Info label="Linked IDs" icon={<Network />}>
+        <Info label={t(labels.linkedIds)} icon={<Network />}>
           {stitchedSessionCount}
         </Info>
       )}

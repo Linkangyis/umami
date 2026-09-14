@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getPageMetadata } from '@/lib/page-metadata';
 import { TestConsolePage } from './TestConsolePage';
 
 async function getEnabled() {
@@ -17,6 +18,6 @@ export default async function ({ params }: { params: Promise<{ websiteId: string
   return <TestConsolePage websiteId={websiteId} />;
 }
 
-export const metadata: Metadata = {
-  title: 'Test Console',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getPageMetadata('Test Console');
+}

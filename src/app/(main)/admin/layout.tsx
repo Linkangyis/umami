@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getBrandMetadata } from '@/lib/branding-metadata';
 import { AdminLayout } from './AdminLayout';
 
 export default function ({ children }) {
@@ -9,9 +10,6 @@ export default function ({ children }) {
   return <AdminLayout>{children}</AdminLayout>;
 }
 
-export const metadata: Metadata = {
-  title: {
-    template: '%s | Admin | Umami',
-    default: 'Admin | Umami',
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getBrandMetadata('管理');
+}

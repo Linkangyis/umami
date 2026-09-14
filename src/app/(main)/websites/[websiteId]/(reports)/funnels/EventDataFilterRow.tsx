@@ -37,7 +37,7 @@ function PropertySelect({
   onPropertyChange?: (value: string) => void;
 }) {
   const { get, useQuery } = useApi();
-  const { t, messages } = useMessages();
+  const { t, labels, messages } = useMessages();
   const [search, setSearch] = useState(value ?? '');
   const searchValue = useDebounce(search, 300);
   const { startAt, endAt } = getEventDataDateRange();
@@ -60,7 +60,7 @@ function PropertySelect({
 
   return (
     <ComboBox
-      aria-label="PropertySelect"
+      aria-label={t(labels.propertySelect)}
       items={properties}
       inputValue={value}
       onInputValueChange={v => {
@@ -99,7 +99,7 @@ function ValueSelect({
   onChange?: (value: string) => void;
 }) {
   const { get, useQuery } = useApi();
-  const { t, messages } = useMessages();
+  const { t, labels, messages } = useMessages();
   const { startAt, endAt } = getEventDataDateRange();
 
   const { data, isLoading } = useQuery<Array<{ value: string; total: number }>>({
@@ -118,7 +118,7 @@ function ValueSelect({
 
   return (
     <ComboBox
-      aria-label="ValueSelect"
+      aria-label={t(labels.valueSelect)}
       items={values}
       inputValue={value}
       onInputValueChange={v => {

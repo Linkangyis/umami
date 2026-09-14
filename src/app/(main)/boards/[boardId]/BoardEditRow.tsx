@@ -8,7 +8,7 @@ import {
   Separator,
 } from 'react-resizable-panels';
 import { v4 as uuid } from 'uuid';
-import { useBoard } from '@/components/hooks';
+import { useBoard, useMessages } from '@/components/hooks';
 import { ChevronDown, GripVertical, Minus, Plus } from '@/components/icons';
 import type { BoardColumn as BoardColumnType, BoardComponentConfig } from '@/lib/types';
 import { BoardEditColumn } from './BoardEditColumn';
@@ -35,6 +35,7 @@ export function BoardEditRow({
   onMoveDown: (id: string) => void;
   onRegisterRef: (rowId: string, ref: GroupImperativeHandle | null) => void;
 }) {
+  const { t, labels } = useMessages();
   const { board, updateBoard } = useBoard();
   const [showActions, setShowActions] = useState(false);
   const moveUpDisabled = rowIndex === 0;
@@ -159,7 +160,7 @@ export function BoardEditRow({
                 <ChevronDown />
               </Icon>
             </Button>
-            <Tooltip placement="top">Move row up</Tooltip>
+            <Tooltip placement="top">{t(labels.moveRowUp)}</Tooltip>
           </TooltipTrigger>
           <TooltipTrigger delay={0}>
             <Button
@@ -172,7 +173,7 @@ export function BoardEditRow({
                 <Plus />
               </Icon>
             </Button>
-            <Tooltip placement="left">Add column</Tooltip>
+            <Tooltip placement="left">{t(labels.addColumn)}</Tooltip>
           </TooltipTrigger>
           <TooltipTrigger delay={0}>
             <Button variant="outline" onPress={() => onRemove(rowId)}>
@@ -180,7 +181,7 @@ export function BoardEditRow({
                 <Minus />
               </Icon>
             </Button>
-            <Tooltip placement="left">Remove row</Tooltip>
+            <Tooltip placement="left">{t(labels.removeRow)}</Tooltip>
           </TooltipTrigger>
           <TooltipTrigger delay={0}>
             <Button
@@ -193,7 +194,7 @@ export function BoardEditRow({
                 <ChevronDown />
               </Icon>
             </Button>
-            <Tooltip placement="bottom">Move row down</Tooltip>
+            <Tooltip placement="bottom">{t(labels.moveRowDown)}</Tooltip>
           </TooltipTrigger>
         </Column>
       )}

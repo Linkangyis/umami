@@ -101,6 +101,7 @@ export function SharedSharesTable({
 }
 
 function ShareUrlCell({ url, value }: { url: string; value: string }) {
+  const { t, labels } = useMessages();
   return (
     <Row alignItems="center" gap="1" minWidth="0" width="100%" overflow="hidden">
       <Row alignItems="center" gap minWidth="0" style={{ flex: 1 }}>
@@ -118,7 +119,7 @@ function ShareUrlCell({ url, value }: { url: string; value: string }) {
           <ExternalLink />
         </Icon>
       </Row>
-      <CopyButton value={url} label="Copy URL" />
+      <CopyButton value={url} label={t(labels.copyUrl)} />
     </Row>
   );
 }

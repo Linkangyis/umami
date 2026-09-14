@@ -98,7 +98,7 @@ export const languages = {
   'ur-PK': { label: 'Urdu (Pakistan)', dateLocale: uk, dir: 'rtl' },
   'uz-UZ': { label: 'O‘zbekcha', dateLocale: uz },
   'vi-VN': { label: 'Tiếng Việt', dateLocale: vi },
-  'zh-CN': { label: '中文', dateLocale: zhCN },
+  'zh-CN': { label: '简体中文', dateLocale: zhCN },
   'zh-TW': { label: '中文(繁體)', dateLocale: zhTW },
 };
 

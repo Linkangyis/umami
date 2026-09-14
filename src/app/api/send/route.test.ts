@@ -106,6 +106,7 @@ beforeEach(() => {
   delete process.env.DISABLE_BOT_CHECK;
   delete process.env.REMOVE_TRAILING_SLASH;
   delete process.env.SALT_ROTATION;
+  delete process.env.DISABLE_IP_STORAGE;
 
   isbotMock.mockReturnValue(false);
   hasBlockedIpMock.mockReturnValue(false);
@@ -549,7 +550,10 @@ describe('cache token handling', () => {
 
   test('a valid cache token skips website lookup and session creation when it matches the computed session', async () => {
     const timestamp = 1704067200;
-    const token = makeCacheToken({ sessionId: makeComputedSessionId(WEBSITE_ID, timestamp) });
+    const token = makeCacheToken({
+      sessionId: makeComputedSessionId(WEBSITE_ID, timestamp),
+      ipStored: true,
+    });
 
     const response = await callPOST(
       { type: 'event', payload: { website: WEBSITE_ID, url: '/', timestamp } },
@@ -874,5 +878,57 @@ describe('error handling', () => {
       error: { code: 'server-error', status: 500 },
     });
     consoleLog.mockRestore();
+  });
+});
+
+describe('IP storage', () => {
+  test('normalizes the stored address while keeping raw addresses out of returned cache tokens', async () => {
+    getClientInfoMock.mockResolvedValue({ ...defaultClientInfo, ip: '::ffff:203.0.113.5' } as any);
+    const response = await callPOST({ type: 'event', payload: { website: WEBSITE_ID, url: '/' } });
+    expect(createSessionMock.mock.calls[0][0]).toMatchObject({ ip: '203.0.113.5' });
+    expect(saveEventMock.mock.calls[0][0]).toMatchObject({ ip: '203.0.113.5' });
+    const body = await response.json();
+    const token = await parseToken(body.cache, secret());
+    expect(token.ipStored).toBe(true);
+    expect(token).not.toHaveProperty('ip');
+    expect(body).not.toHaveProperty('ip');
+  });
+
+  test('old cached sessions get one IP backfill, then subsequent requests skip session writes', async () => {
+    const timestamp = 1704067200;
+    const sessionId = makeComputedSessionId(WEBSITE_ID, timestamp);
+    const cache = createToken(
+      {
+        websiteId: WEBSITE_ID,
+        sessionId,
+        visitId: 'visit-1',
+        iat: Math.floor(Date.now() / 1000),
+        type: CACHE_TOKEN_TYPE,
+      },
+      secret(),
+    );
+    const first = await callPOST(
+      { type: 'event', payload: { website: WEBSITE_ID, url: '/', timestamp } },
+      { headers: { 'x-umami-cache': cache } },
+    );
+    expect(createSessionMock).toHaveBeenCalledTimes(1);
+    createSessionMock.mockClear();
+    const body = await first.json();
+    await callPOST(
+      { type: 'event', payload: { website: WEBSITE_ID, url: '/', timestamp } },
+      { headers: { 'x-umami-cache': body.cache } },
+    );
+    expect(createSessionMock).not.toHaveBeenCalled();
+  });
+
+  test('disabled storage and malformed addresses are not persisted', async () => {
+    process.env.DISABLE_IP_STORAGE = 'true';
+    await callPOST({ type: 'event', payload: { website: WEBSITE_ID, url: '/' } });
+    expect(createSessionMock.mock.calls[0][0].ip).toBeNull();
+    expect(saveEventMock.mock.calls[0][0].ip).toBeNull();
+    delete process.env.DISABLE_IP_STORAGE;
+    getClientInfoMock.mockResolvedValue({ ...defaultClientInfo, ip: 'untrusted text' } as any);
+    await callPOST({ type: 'event', payload: { website: WEBSITE_ID, url: '/' } });
+    expect(saveEventMock.mock.calls[1][0].ip).toBeNull();
   });
 });

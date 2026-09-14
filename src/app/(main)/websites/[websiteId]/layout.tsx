@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { WebsiteLayout } from '@/app/(main)/websites/[websiteId]/WebsiteLayout';
+import { getBrandMetadata } from '@/lib/branding-metadata';
 import { getWebsite } from '@/queries/prisma';
 
 export default async function ({
@@ -26,9 +27,6 @@ export default async function ({
   );
 }
 
-export const metadata: Metadata = {
-  title: {
-    template: '%s | Umami',
-    default: 'Websites | Umami',
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getBrandMetadata(undefined, '网站');
+}

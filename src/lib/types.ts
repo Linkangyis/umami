@@ -192,6 +192,7 @@ export interface PageResult<T> {
 
 export interface RealtimeData {
   countries: Record<string, number>;
+  regions?: Record<string, number>;
   events: any[];
   pageviews: any[];
   referrers: Record<string, number>;

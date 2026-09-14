@@ -202,13 +202,17 @@ export function UserButton({ showText = true, onClose }: UserButtonProps) {
                     <Icon>
                       <Sun />
                     </Icon>
-                    <Text weight={theme === 'light' ? 'bold' : undefined}>Light</Text>
+                    <Text weight={theme === 'light' ? 'bold' : undefined}>
+                      {t(labels.lightTheme)}
+                    </Text>
                   </MenuItem>
                   <MenuItem id="dark" onAction={() => handleSelectTheme('dark')}>
                     <Icon>
                       <Moon />
                     </Icon>
-                    <Text weight={theme === 'dark' ? 'bold' : undefined}>Dark</Text>
+                    <Text weight={theme === 'dark' ? 'bold' : undefined}>
+                      {t(labels.darkTheme)}
+                    </Text>
                   </MenuItem>
                 </Menu>
               </Popover>

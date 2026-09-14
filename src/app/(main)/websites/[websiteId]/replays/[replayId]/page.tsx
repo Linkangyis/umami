@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getPageMetadata } from '@/lib/page-metadata';
 import { ReplayPlayback } from './ReplayPlayback';
 
 export default async function ({
@@ -11,6 +12,6 @@ export default async function ({
   return <ReplayPlayback websiteId={websiteId} replayId={replayId} />;
 }
 
-export const metadata: Metadata = {
-  title: 'Session Replay',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getPageMetadata('Session Replay');
+}

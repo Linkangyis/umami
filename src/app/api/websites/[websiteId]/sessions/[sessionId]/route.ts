@@ -1,9 +1,11 @@
 import { isRelationalOnly } from '@/lib/db';
 import { parseRequest } from '@/lib/request';
 import { badRequest, json, notFound, ok, unauthorized } from '@/lib/response';
+import { redactSessionIp } from '@/lib/session-ip';
 import { canDeleteWebsite, canViewWebsiteSection } from '@/permissions';
 import { deleteSession } from '@/queries/prisma';
 import { getLinkedDistinctIds, getLinkedSessionIds, getWebsiteSession } from '@/queries/sql';
+import { getWebsiteSessionIps } from '@/queries/sql/sessions/getWebsiteSessionIps';
 
 export async function GET(
   request: Request,
@@ -49,9 +51,12 @@ export async function GET(
   }
 
   const stitchedSessionCount = sessionIds.length;
+  const includeIp = !!auth?.user && !auth?.shareToken;
+  const ips = includeIp ? await getWebsiteSessionIps(websiteId, [sessionId]) : {};
 
   return json({
-    ...data,
+    ...redactSessionIp(data),
+    ...(includeIp ? { ip: ips[sessionId] || null } : {}),
     canDelete,
     stitchedSessionCount,
   });

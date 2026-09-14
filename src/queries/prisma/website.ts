@@ -9,6 +9,10 @@ import { z } from 'zod';
 const WEBSITE_SORT_FIELDS = ['name', 'domain', 'createdAt'] as const;
 
 async function deleteWebsiteDependentData(tx: any, websiteId: string) {
+  await tx.eventRule.deleteMany({
+    where: { websiteId },
+  });
+
   await tx.sessionReplaySaved.deleteMany({
     where: { websiteId },
   });

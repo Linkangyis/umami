@@ -26,10 +26,12 @@ export async function checkAuth(request: Request) {
   const shareToken = await parseShareToken(request);
 
   let user = null;
-  const { userId, authKey } = payload || {};
+  // A signed 2FA challenge (or another purpose-specific token) is not a completed login.
+  const loginPayload = payload && payload.type === undefined ? payload : null;
+  const { userId, authKey } = loginPayload || {};
 
   if (userId) {
-    user = await getUser(userId, { includePassword: true });
+    user = await getUser(userId, { includePassword: true, usePrimary: true });
 
     // Reject tokens issued before the current password.
     // Allow legacy stateless tokens that were minted without a password fingerprint.
@@ -40,7 +42,7 @@ export async function checkAuth(request: Request) {
     const key = await redis.client.get(authKey);
 
     if (key?.userId) {
-      user = await getUser(key.userId, { includePassword: true });
+      user = await getUser(key.userId, { includePassword: true, usePrimary: true });
 
       // Only enforce password-change invalidation for sessions that include a password fingerprint.
       if (user && key.pwd && hash(user.password) !== key.pwd) {

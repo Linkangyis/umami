@@ -1,7 +1,7 @@
 import { Column, Row, Text, Tooltip, TooltipTrigger } from '@umami/react-zen';
 import { IconLabel } from '@/components/common/IconLabel';
 import Link from '@/components/common/Link';
-import { useMessages, useNavigation } from '@/components/hooks';
+import { useLocale, useMessages, useNavigation } from '@/components/hooks';
 import { ArrowLeft, Settings2, ShieldCheck, UserCircle, Users } from '@/components/icons';
 
 export function SettingsNav({
@@ -13,6 +13,7 @@ export function SettingsNav({
 }) {
   const { t, labels } = useMessages();
   const { renderUrl, pathname } = useNavigation();
+  const { locale } = useLocale();
 
   const items = [
     {
@@ -45,6 +46,12 @@ export function SettingsNav({
           id: 'security',
           label: t(labels.security),
           path: renderUrl('/settings/security'),
+          icon: <ShieldCheck />,
+        },
+        {
+          id: 'mcp',
+          label: locale.startsWith('zh') ? 'MCP 接入' : 'MCP access',
+          path: renderUrl('/settings/mcp'),
           icon: <ShieldCheck />,
         },
       ],

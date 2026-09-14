@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
 
 process.env.DATABASE_URL ??= 'postgresql://user:pass@localhost:5432/umami?schema=public';
 delete process.env.DATABASE_REPLICA_URL;
@@ -24,9 +24,44 @@ vi.mock('@/generated/prisma/client', () => ({
 }));
 
 let getRawQueryClient!: typeof import('./prisma').getRawQueryClient;
+let getPrismaPgConfig!: typeof import('./prisma').getPrismaPgConfig;
 
 beforeAll(async () => {
-  ({ getRawQueryClient } = await import('./prisma'));
+  ({ getRawQueryClient, getPrismaPgConfig } = await import('./prisma'));
+});
+
+afterEach(() => vi.unstubAllEnvs());
+
+describe('getPrismaPgConfig', () => {
+  test('sets UTC at connection startup and preserves existing URL options and schema', () => {
+    const source = new URL(
+      'postgresql://user:pass@localhost:5432/umami?schema=analytics&sslmode=require',
+    );
+    source.searchParams.set('options', '-c statement_timeout=10000 -c timezone=Asia/Shanghai');
+    const config = getPrismaPgConfig(source.toString());
+    const result = new URL(config.connectionString);
+
+    expect(result.searchParams.get('options')).toBe(
+      '-c statement_timeout=10000 -c timezone=Asia/Shanghai -c timezone=UTC',
+    );
+    expect(result.searchParams.get('schema')).toBe('analytics');
+    expect(result.searchParams.get('sslmode')).toBe('require');
+    expect(result.username).toBe(source.username);
+    expect(result.password).toBe(source.password);
+    expect(result.host).toBe(source.host);
+  });
+
+  test('retains inherited PGOPTIONS while enforcing UTC and leaves the environment untouched', () => {
+    vi.stubEnv('PGOPTIONS', '-c statement_timeout=20000 -c timezone=Asia/Hong_Kong');
+    const result = new URL(
+      getPrismaPgConfig('postgresql://user:pass@localhost/umami').connectionString,
+    );
+
+    expect(result.searchParams.get('options')).toBe(
+      '-c statement_timeout=20000 -c timezone=Asia/Hong_Kong -c timezone=UTC',
+    );
+    expect(process.env.PGOPTIONS).toBe('-c statement_timeout=20000 -c timezone=Asia/Hong_Kong');
+  });
 });
 
 interface RawQueryClient {

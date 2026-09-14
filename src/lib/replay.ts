@@ -1,3 +1,5 @@
+import { getRecorderPagePath } from './recorder';
+
 export const RRWEB_EVENT_TYPE = {
   Meta: 4,
   FullSnapshot: 2,
@@ -208,4 +210,37 @@ export function getReplayPlayerEvents(events: any[] | null | undefined) {
 
 export function canReplayEvents(events: any[] | null | undefined) {
   return getReplayPlayerEvents(events).length >= 2;
+}
+
+export interface ReplayPage {
+  path: string;
+  timestamp: number;
+  offset: number;
+}
+
+/** Read only URLs that were recorded; historical missing navigation cannot be inferred. */
+export function getReplayPages(events: any[] | null | undefined): ReplayPage[] {
+  if (!Array.isArray(events)) return [];
+
+  const pages: ReplayPage[] = [];
+  const startTime = events.map(getReplayTimestamp).find(timestamp => timestamp !== null);
+
+  if (startTime === undefined) return pages;
+
+  for (const event of events) {
+    const href =
+      event?.type === RRWEB_EVENT_TYPE.Meta
+        ? event.data?.href
+        : event?.type === 5 && event.data?.tag === 'url-change'
+          ? event.data?.payload?.url
+          : null;
+    const path = getRecorderPagePath(href);
+    const timestamp = getReplayTimestamp(event);
+
+    if (!path || timestamp === null || pages.at(-1)?.path === path) continue;
+
+    pages.push({ path, timestamp, offset: Math.max(0, timestamp - startTime) });
+  }
+
+  return pages;
 }

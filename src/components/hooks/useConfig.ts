@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { useApi } from '@/components/hooks/useApi';
+import type { AppBranding } from '@/lib/branding';
 import { setConfig, useApp } from '@/store/app';
 
 export type Config = {
+  branding?: AppBranding;
   cloudMode: boolean;
   faviconUrl?: string;
   linksUrl?: string;
@@ -16,19 +18,17 @@ export type Config = {
 
 export function useConfig(): Config {
   const { config } = useApp();
-  const { get } = useApi();
-
-  async function loadConfig() {
-    const data = await get(`/config`);
-
-    setConfig(data);
-  }
+  const { get, useQuery } = useApi();
+  const { data } = useQuery<Config>({
+    queryKey: ['config'],
+    queryFn: () => get('/config'),
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
+  });
 
   useEffect(() => {
-    if (!config) {
-      loadConfig();
-    }
-  }, []);
+    if (data) setConfig(data);
+  }, [data]);
 
-  return config;
+  return config || data;
 }

@@ -15,6 +15,7 @@ CREATE TABLE umami.website_event
     country LowCardinality(String),
     region LowCardinality(String),
     city String,
+    ip String DEFAULT '',
     --pageviews
     url_path String,
     url_query String,

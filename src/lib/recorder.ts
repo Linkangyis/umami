@@ -8,6 +8,8 @@ export interface RecorderConfig {
   blockSelector?: string;
 }
 
+export { getRecorderPagePath } from '@/tracker/page-path';
+
 export function getRecorderConfig(value: unknown): RecorderConfig {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return {};

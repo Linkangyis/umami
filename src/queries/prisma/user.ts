@@ -1,4 +1,4 @@
-import { Prisma } from '@/generated/prisma/client';
+import { Prisma, type PrismaClient } from '@/generated/prisma/client';
 import { ROLES } from '@/lib/constants';
 import { getRandomChars } from '@/lib/generate';
 import prisma from '@/lib/prisma';
@@ -13,12 +13,15 @@ const USER_SORT_FIELDS = ['username', 'role', 'createdAt'] as const;
 export interface GetUserOptions {
   includePassword?: boolean;
   showDeleted?: boolean;
+  usePrimary?: boolean;
 }
 
 async function findUser(criteria: Prisma.UserFindUniqueArgs, options: GetUserOptions = {}) {
-  const { includePassword = false, showDeleted = false } = options;
+  const { includePassword = false, showDeleted = false, usePrimary = false } = options;
+  const client = prisma.client as typeof prisma.client & { $primary?: () => PrismaClient };
+  const database = usePrimary && typeof client.$primary === 'function' ? client.$primary() : client;
 
-  return prisma.client.user.findUnique({
+  return database.user.findUnique({
     ...criteria,
     where: {
       ...criteria.where,

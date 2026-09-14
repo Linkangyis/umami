@@ -3,7 +3,7 @@ import { Avatar } from '@/components/common/Avatar';
 import { DateDistance } from '@/components/common/DateDistance';
 import Link from '@/components/common/Link';
 import { TypeIcon } from '@/components/common/TypeIcon';
-import { useFormat, useMessages } from '@/components/hooks';
+import { useFormat, useMessages, useShare } from '@/components/hooks';
 
 export function SessionsTable({
   websiteId,
@@ -12,6 +12,7 @@ export function SessionsTable({
 }: DataTableProps & { websiteId: string; getSessionHref?: (row: any) => string }) {
   const { t, labels } = useMessages();
   const { formatValue } = useFormat();
+  const share = useShare();
 
   return (
     <DataTable {...props}>
@@ -30,6 +31,11 @@ export function SessionsTable({
       <DataColumn id="visits" label={t(labels.visits)} width="80px" />
       <DataColumn id="views" label={t(labels.views)} width="80px" />
       <DataColumn id="events" label={t(labels.events)} width="80px" />
+      {!share && (
+        <DataColumn id="ip" label="IP" width="180px">
+          {(row: any) => <span style={{ overflowWrap: 'anywhere' }}>{row.ip || '—'}</span>}
+        </DataColumn>
+      )}
       <DataColumn id="location" label={t(labels.location)} width="200px">
         {(row: any) => (
           <TypeIcon type="country" value={row.country}>

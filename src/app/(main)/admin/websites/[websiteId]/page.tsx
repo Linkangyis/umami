@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { WebsiteSettingsPage } from '@/app/(main)/settings/websites/[websiteId]/WebsiteSettingsPage';
+import { getPageMetadata } from '@/lib/page-metadata';
 
 export default async function ({ params }: { params: Promise<{ websiteId: string }> }) {
   const { websiteId } = await params;
@@ -7,6 +8,6 @@ export default async function ({ params }: { params: Promise<{ websiteId: string
   return <WebsiteSettingsPage websiteId={websiteId} />;
 }
 
-export const metadata: Metadata = {
-  title: 'Website',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getPageMetadata('Website');
+}

@@ -1,0 +1,2 @@
+ALTER TABLE "session" ADD COLUMN "ip" VARCHAR(45);
+ALTER TABLE "heatmap_event" ALTER COLUMN "url_path" TYPE VARCHAR(2183);

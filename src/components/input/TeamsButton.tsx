@@ -90,7 +90,7 @@ export function TeamsButton() {
             <MenuItem id="manage-teams">
               <a href="/settings/teams" style={{ width: '100%' }}>
                 <Row alignItems="center" justifyContent="space-between" gap>
-                  <Text align="center">Manage teams</Text>
+                  <Text align="center">{t(labels.manageTeams)}</Text>
                   <Icon>
                     <ArrowRight />
                   </Icon>

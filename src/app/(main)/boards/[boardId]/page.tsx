@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { getPageMetadata } from '@/lib/page-metadata';
 import { BoardViewPage } from './BoardViewPage';
 
 export default async function ({ params }: { params: Promise<{ boardId: string }> }) {
@@ -12,6 +13,6 @@ export default async function ({ params }: { params: Promise<{ boardId: string }
   return <BoardViewPage boardId={boardId} />;
 }
 
-export const metadata: Metadata = {
-  title: 'Board',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getPageMetadata('Board');
+}

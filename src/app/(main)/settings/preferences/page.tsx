@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
+import { getPageMetadata } from '@/lib/page-metadata';
 import { PreferencesPage } from './PreferencesPage';
 
 export default function () {
   return <PreferencesPage />;
 }
 
-export const metadata: Metadata = {
-  title: 'Preferences',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getPageMetadata('Preferences');
+}

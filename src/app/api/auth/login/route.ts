@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
   const { username, password } = body;
 
-  const user = await getUserByUsername(username, { includePassword: true });
+  const user = await getUserByUsername(username, { includePassword: true, usePrimary: true });
 
   if (!user || !checkPassword(password, user.password)) {
     return unauthorized({ code: 'incorrect-username-password' });

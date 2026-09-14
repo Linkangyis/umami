@@ -1,6 +1,6 @@
 import { Button, Column, ListItem, Row, Select, Text, TextField } from '@umami/react-zen';
 import { useEffect, useMemo, useState } from 'react';
-import { useApi, useMessages } from '@/components/hooks';
+import { useApi, useLocale, useMessages } from '@/components/hooks';
 import { LinkSelect } from '@/components/input/LinkSelect';
 import { PixelSelect } from '@/components/input/PixelSelect';
 import { WebsiteSelect } from '@/components/input/WebsiteSelect';
@@ -13,6 +13,7 @@ import {
   isOpenBoardType,
 } from '@/lib/boards';
 import type { BoardComponentConfig } from '@/lib/types';
+import { translateBoardComponentText } from '../boardComponentLocale';
 import {
   type ComponentDefinition,
   type ConfigField,
@@ -48,6 +49,7 @@ export function BoardComponentSelect({
   onClose: () => void;
 }) {
   const { t, labels, messages } = useMessages();
+  const { locale } = useLocale();
   const { get, useQuery } = useApi();
   const initialEntity = getComponentEntity(initialConfig);
   const [selectedDef, setSelectedDef] = useState<ComponentDefinition | null>(null);
@@ -59,7 +61,7 @@ export function BoardComponentSelect({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
 
-  const allDefinitions = useMemo(() => getComponentDefinitions(), []);
+  const allDefinitions = useMemo(() => getComponentDefinitions(locale), [locale]);
   const activeEntityType = isOpenBoardType(boardType) ? selectedEntityType : boardEntityType;
   const isSelectedDefSupported = selectedDef
     ? isBoardComponentSupported(selectedDef.type, activeEntityType)
@@ -424,14 +426,14 @@ export function BoardComponentSelect({
                       </Select>
                       {isLoadingReportOptions && (
                         <Text size="xs" color="muted">
-                          Loading options...
+                          {t(messages.loadingOptions)}
                         </Text>
                       )}
                       {!isLoadingReportOptions &&
                         resolvedEntityId &&
                         (reportOptionsByType[field.reportType ?? '']?.length ?? 0) === 0 && (
                           <Text size="xs" color="muted">
-                            No saved items found.
+                            {t(messages.noSavedItemsFound)}
                           </Text>
                         )}
                     </>
@@ -443,14 +445,14 @@ export function BoardComponentSelect({
         </Column>
 
         <Column gap="3" height="100%" style={{ width: 280, flexShrink: 0, minWidth: 0 }}>
-          <Text weight="bold">Components</Text>
+          <Text weight="bold">{t(labels.components)}</Text>
           <Column border="left" paddingLeft="4" height="100%" style={{ minHeight: 0 }}>
             {hasSelectedEntity ? (
               <Column gap="1" height="100%" style={{ overflowY: 'auto', minHeight: 0 }}>
                 {groupedDefinitions.map(({ group, definitions }) => (
                   <Column key={group} gap="1" paddingBottom="2">
                     <Text size="sm" color="muted" weight="bold">
-                      {group}
+                      {translateBoardComponentText(group, locale)}
                     </Text>
                     {definitions.map(def => {
                       const Icon = def.icon;
@@ -498,7 +500,7 @@ export function BoardComponentSelect({
         </Column>
 
         <Column gap="3" flexGrow={1} height="100%" style={{ minWidth: 0 }}>
-          <Text weight="bold">Preview</Text>
+          <Text weight="bold">{t(labels.preview)}</Text>
           <Column border="left" paddingLeft="4" height="100%" style={{ minWidth: 0 }}>
             {hasSelectedEntity && previewConfig && (!needsWebsite || resolvedEntityId) ? (
               <BoardComponentRenderer

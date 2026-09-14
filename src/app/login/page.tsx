@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getPageMetadata } from '@/lib/page-metadata';
 import { LoginPage } from './LoginPage';
 
 export const dynamic = 'force-dynamic';
@@ -11,6 +12,6 @@ export default async function () {
   return <LoginPage />;
 }
 
-export const metadata: Metadata = {
-  title: 'Login',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getPageMetadata('Login');
+}

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getPageMetadata } from '@/lib/page-metadata';
 import { RetentionPage } from './RetentionPage';
 
 export default async function ({ params }: { params: Promise<{ websiteId: string }> }) {
@@ -7,6 +8,6 @@ export default async function ({ params }: { params: Promise<{ websiteId: string
   return <RetentionPage websiteId={websiteId} />;
 }
 
-export const metadata: Metadata = {
-  title: 'Retention',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getPageMetadata('Retention');
+}

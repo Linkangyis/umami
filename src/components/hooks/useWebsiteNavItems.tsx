@@ -11,11 +11,14 @@ import {
   Video,
 } from '@/components/icons';
 import { Funnel, Gauge, Lightning, Magnet, Money, Network, Path, Target } from '@/components/svg';
+import { useLocale } from './useLocale';
 import { useMessages } from './useMessages';
 import { useNavigation } from './useNavigation';
 
 export function useWebsiteNavItems(websiteId: string) {
   const { t, labels } = useMessages();
+  const { locale } = useLocale();
+  const chinese = locale.startsWith('zh');
   const { pathname, renderUrl } = useNavigation();
   const resetParams = {
     search: undefined,
@@ -47,6 +50,12 @@ export function useWebsiteNavItems(websiteId: string) {
           label: t(labels.events),
           icon: <Lightning />,
           path: renderPath('/events'),
+        },
+        {
+          id: 'traffic',
+          label: chinese ? '流量分析' : 'Traffic analysis',
+          icon: <Sheet />,
+          path: renderPath('/traffic'),
         },
         {
           id: 'sessions',
@@ -124,6 +133,12 @@ export function useWebsiteNavItems(websiteId: string) {
     {
       label: t(labels.audience),
       items: [
+        {
+          id: 'engagement',
+          label: chinese ? '访客与互动' : 'Visitor engagement',
+          icon: <User />,
+          path: renderPath('/engagement'),
+        },
         {
           id: 'segments',
           label: t(labels.segments),

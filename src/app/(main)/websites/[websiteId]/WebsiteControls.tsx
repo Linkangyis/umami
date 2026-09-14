@@ -1,4 +1,5 @@
 import { Column, Grid, Row } from '@umami/react-zen';
+import type { ReactNode } from 'react';
 import { useShare } from '@/components/hooks';
 import { ExportButton } from '@/components/input/ExportButton';
 import { FilterBar } from '@/components/input/FilterBar';
@@ -15,6 +16,7 @@ export function WebsiteControls({
   allowMonthFilter,
   allowDownload = false,
   allowCompare = false,
+  children,
 }: {
   websiteId?: string;
   allowFilter?: boolean;
@@ -23,6 +25,7 @@ export function WebsiteControls({
   allowMonthFilter?: boolean;
   allowDownload?: boolean;
   allowCompare?: boolean;
+  children?: ReactNode;
 }) {
   const share = useShare();
   const showFilter = allowFilter && allowShareFilter(share?.parameters);
@@ -35,12 +38,18 @@ export function WebsiteControls({
             <WebsiteFilterButton websiteId={websiteId} allowBounceFilter={allowBounceFilter} />
           )}
         </Row>
-        <Row alignItems="center" justifyContent={{ base: 'flex-start', md: 'flex-end' }}>
+        <Row
+          alignItems="center"
+          justifyContent={{ base: 'flex-start', md: 'flex-end' }}
+          gap="3"
+          wrap="wrap"
+        >
           {allowDateFilter && (
             <WebsiteDateFilter websiteId={websiteId} allowCompare={allowCompare} />
           )}
           {allowDownload && <ExportButton websiteId={websiteId} />}
           {allowMonthFilter && <MonthFilter />}
+          {children}
         </Row>
       </Grid>
       {showFilter && <FilterBar websiteId={websiteId} />}

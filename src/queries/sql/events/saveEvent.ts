@@ -5,6 +5,7 @@ import { CLICKHOUSE, PRISMA, runQuery } from '@/lib/db';
 import { truncateString } from '@/lib/format';
 import kafka from '@/lib/kafka';
 import prisma from '@/lib/prisma';
+import { getStoredSessionIp } from '@/lib/session-ip';
 import { saveEventData } from './saveEventData';
 import { saveRevenue } from './saveRevenue';
 
@@ -25,6 +26,7 @@ export interface SaveEventArgs {
   referrerDomain?: string;
 
   // Session
+  ip?: string | null;
   distinctId?: string;
   browser?: string;
   os?: string;
@@ -182,6 +184,7 @@ async function clickhouseQuery({
   referrerQuery,
   referrerDomain,
   distinctId,
+  ip,
   browser,
   os,
   device,
@@ -224,6 +227,7 @@ async function clickhouseQuery({
       FIELD_LENGTH.region,
     ),
     city: truncateString(city, FIELD_LENGTH.city),
+    ip: getStoredSessionIp(ip) || '',
     url_path: truncateString(urlPath, FIELD_LENGTH.url),
     url_query: truncateString(urlQuery, FIELD_LENGTH.url),
     utm_source: truncateString(utmSource, FIELD_LENGTH.fieldValue),

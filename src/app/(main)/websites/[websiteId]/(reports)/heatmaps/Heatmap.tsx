@@ -18,7 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ControlledDialog } from '@/components/common/ControlledDialog';
 import { IconLabel } from '@/components/common/IconLabel';
 import { LoadingPanel } from '@/components/common/LoadingPanel';
-import { useMobile, useResultQuery } from '@/components/hooks';
+import { useMessages, useMobile, useResultQuery } from '@/components/hooks';
 import { ListCheck } from '@/components/icons';
 import { formatLongNumber } from '@/lib/format';
 import type { HeatmapMode, HeatmapPoint, HeatmapResult, HeatmapSnapshot } from '@/queries/sql';
@@ -59,6 +59,7 @@ interface HeatmapProps {
 }
 
 export function Heatmap({ websiteId, urlPath, onUrlPathChange, mode, search }: HeatmapProps) {
+  const { t, labels, messages } = useMessages();
   const { isPhone } = useMobile();
   const [isPagePickerOpen, setIsPagePickerOpen] = useState(false);
   const {
@@ -124,7 +125,7 @@ export function Heatmap({ websiteId, urlPath, onUrlPathChange, mode, search }: H
   if (!isLoading && pages.length === 0) {
     return (
       <LoadingPanel data={pagesData} isLoading={isLoading} error={error} minHeight="900px">
-        <EmptyState message="No data available." />
+        <EmptyState message={t(messages.noDataAvailable)} />
       </LoadingPanel>
     );
   }
@@ -134,12 +135,17 @@ export function Heatmap({ websiteId, urlPath, onUrlPathChange, mode, search }: H
       {isPhone ? (
         <Column gap="4" minHeight="900px">
           <Column gap="2" className={styles.mobilePageSection}>
-            <Row alignItems="center" justifyContent="space-between" gap className={styles.mobilePageHeader}>
+            <Row
+              alignItems="center"
+              justifyContent="space-between"
+              gap
+              className={styles.mobilePageHeader}
+            >
               <Text color="muted" className={styles.mobileSectionLabel}>
-                Selected page
+                {t(labels.selectedPage)}
               </Text>
               <Button variant="outline" onPress={() => setIsPagePickerOpen(true)}>
-                <IconLabel icon={<ListCheck />} label="Pages" />
+                <IconLabel icon={<ListCheck />} label={t(labels.pages)} />
               </Button>
             </Row>
             {selectedPage && (
@@ -185,7 +191,7 @@ export function Heatmap({ websiteId, urlPath, onUrlPathChange, mode, search }: H
               placement="fullscreen"
             >
               <Dialog
-                title="Pages"
+                title={t(labels.pages)}
                 style={{
                   width: '100%',
                   height: '100%',
@@ -264,17 +270,22 @@ function PageList({
   hasSearch: boolean;
   showHeading?: boolean;
 }) {
+  const { t, labels, messages } = useMessages();
   const getPageMetricTitle = (page: HeatmapResult['pages'][number]) => {
-    const metricLabel = mode === 'scroll' ? 'scroll events' : 'clicks';
+    const metricLabel = mode === 'scroll' ? t(labels.scroll) : t(labels.clicks);
 
-    return `${formatLongNumber(page.sessions)} visitors - ${formatLongNumber(page.count)} ${metricLabel}`;
+    return t(messages.heatmapPageSummary, {
+      visitors: formatLongNumber(page.sessions),
+      count: formatLongNumber(page.count),
+      metric: metricLabel,
+    });
   };
 
   return (
     <Column className={styles.pageList} gap="1">
-      {showHeading && <Heading size="lg">Pages</Heading>}
+      {showHeading && <Heading size="lg">{t(labels.pages)}</Heading>}
       <Column className={styles.pageListItems} gap="2">
-        {pages.length === 0 && hasSearch && <Text color="muted">No matching pages</Text>}
+        {pages.length === 0 && hasSearch && <Text color="muted">{t(messages.noResultsFound)}</Text>}
         {pages.map(page => (
           <button
             key={page.urlPath}
@@ -556,6 +567,7 @@ function ScreenWidthSelect({
   value: number | null;
   onChange: (value: number) => void;
 }) {
+  const { t, labels } = useMessages();
   const bucketsByWidth = useMemo(
     () => new Map(buckets.map(bucket => [bucket.width, bucket])),
     [buckets],
@@ -568,10 +580,10 @@ function ScreenWidthSelect({
   return (
     <Row alignItems="center" gap="2" className={styles.screenWidthControl}>
       <Text color="muted" className={styles.screenWidthLabel}>
-        Screen width:
+        {t(labels.screenWidth)}:
       </Text>
       <Select
-        aria-label="Screen width"
+        aria-label={t(labels.screenWidth)}
         value={value}
         onChange={nextValue => onChange(Number(nextValue))}
         maxHeight={420}
@@ -640,6 +652,7 @@ function ClickHeatmapView({
   snapshot: HeatmapSnapshot | null;
   isLoading: boolean;
 }) {
+  const { t, messages } = useMessages();
   const { isPhone } = useMobile();
   const [snapshotReady, setSnapshotReady] = useState(false);
   const screenWidthBuckets = useMemo(() => getScreenWidthBuckets(points), [points]);
@@ -683,8 +696,8 @@ function ClickHeatmapView({
   const totalClicks = visible.reduce((sum, point) => sum + point.count, 0);
   const bucketDescription = viewport
     ? viewport.minViewportW === viewport.maxViewportW
-      ? `Recorded at ${viewport.minViewportW}px wide`
-      : `Grouped recorded widths from ${viewport.minViewportW}px to ${viewport.maxViewportW}px`
+      ? t(messages.heatmapRecordedWidth, { width: viewport.minViewportW })
+      : t(messages.heatmapGroupedWidths, { min: viewport.minViewportW, max: viewport.maxViewportW })
     : undefined;
   const showLoading = isLoading;
 
@@ -701,7 +714,7 @@ function ClickHeatmapView({
         {showLoading ? (
           <Row alignItems="center" gap className={styles.summaryStats}>
             <Text color="muted" className={styles.summaryStat}>
-              Loading Heatmap...
+              {t(messages.heatmapLoading)}
             </Text>
           </Row>
         ) : isPhone ? (
@@ -721,8 +734,11 @@ function ClickHeatmapView({
           >
             <Text color="muted" className={styles.summaryStat} title={bucketDescription}>
               {viewport
-                ? `${visible.length} positions - ${formatLongNumber(totalClicks)} clicks`
-                : 'No click data for this page yet.'}
+                ? t(messages.heatmapClickSummary, {
+                    positions: visible.length,
+                    clicks: formatLongNumber(totalClicks),
+                  })
+                : t(messages.heatmapNoClickData)}
             </Text>
             <ScreenWidthSelect
               buckets={screenWidthBuckets}
@@ -745,7 +761,7 @@ function ClickHeatmapView({
           {showLoading ? (
             <CanvasLoading />
           ) : !viewport || visible.length === 0 ? (
-            <EmptyState message="No click data for this page yet." />
+            <EmptyState message={t(messages.heatmapNoClickData)} />
           ) : (
             <div
               className={styles.canvasSurface}
@@ -810,6 +826,7 @@ function ScrollHeatmapView({
   snapshot: HeatmapSnapshot | null;
   isLoading: boolean;
 }) {
+  const { t, messages } = useMessages();
   const { isPhone } = useMobile();
   const [snapshotReady, setSnapshotReady] = useState(false);
   const handleSnapshotReady = useCallback(() => setSnapshotReady(true), []);
@@ -850,8 +867,8 @@ function ScrollHeatmapView({
   const showLoading = isLoading;
   const bucketDescription = viewport
     ? viewport.minViewportW === viewport.maxViewportW
-      ? `Recorded at ${viewport.minViewportW}px wide`
-      : `Grouped recorded widths from ${viewport.minViewportW}px to ${viewport.maxViewportW}px`
+      ? t(messages.heatmapRecordedWidth, { width: viewport.minViewportW })
+      : t(messages.heatmapGroupedWidths, { min: viewport.minViewportW, max: viewport.maxViewportW })
     : undefined;
 
   type Band = { fromPct: number; toPct: number; reached: number; ratio: number };
@@ -885,7 +902,7 @@ function ScrollHeatmapView({
       {showLoading ? (
         <Row alignItems="center" gap className={styles.summaryStats}>
           <Text color="muted" className={styles.summaryStat}>
-            Loading Heatmap...
+            {t(messages.heatmapLoading)}
           </Text>
         </Row>
       ) : isPhone ? (
@@ -905,8 +922,14 @@ function ScrollHeatmapView({
         >
           <Text color="muted" className={styles.summaryStat} title={bucketDescription}>
             {hasScrollData
-              ? `${formatLongNumber(totalSessions)} sessions - page ${pageW}x${pageH}${viewportH ? ` - viewport ${viewportW}x${viewportH}` : ''}`
-              : 'No scroll data for this page yet.'}
+              ? t(messages.heatmapScrollSummary, {
+                  sessions: formatLongNumber(totalSessions),
+                  pageWidth: pageW,
+                  pageHeight: pageH,
+                  viewportWidth: viewportW,
+                  viewportHeight: viewportH,
+                })
+              : t(messages.heatmapNoScrollData)}
           </Text>
           <ScreenWidthSelect
             buckets={screenWidthBuckets}
@@ -928,7 +951,7 @@ function ScrollHeatmapView({
           {showLoading ? (
             <CanvasLoading />
           ) : !hasScrollData ? (
-            <EmptyState message="No scroll data for this page yet." />
+            <EmptyState message={t(messages.heatmapNoScrollData)} />
           ) : (
             <div
               className={styles.canvasSurface}
@@ -960,7 +983,10 @@ function ScrollHeatmapView({
                               ? `hsla(${hue}, 90%, 55%, ${0.12 + intensity * 0.45})`
                               : 'none',
                         }}
-                        title={`${band.toPct}% depth - ${formatLongNumber(band.reached)} sessions reached`}
+                        title={t(messages.heatmapScrollTooltip, {
+                          depth: band.toPct,
+                          sessions: formatLongNumber(band.reached),
+                        })}
                       >
                         <span
                           className={styles.scrollBandLabel}
@@ -969,7 +995,10 @@ function ScrollHeatmapView({
                           // bands resize with the rest of the overlay.
                           style={{ transform: `scale(${1 / fit.scale})` }}
                         >
-                          {band.toPct}% depth - {Math.round(intensity * 100)}% reached
+                          {t(messages.heatmapScrollBand, {
+                            depth: band.toPct,
+                            reached: Math.round(intensity * 100),
+                          })}
                         </span>
                       </div>
                     );
@@ -1005,13 +1034,7 @@ function SnapshotPreview({
   return <IframeSnapshot snapshot={snapshot} onReady={onReady} />;
 }
 
-function IframeSnapshot({
-  snapshot,
-  onReady,
-}: {
-  snapshot: HeatmapSnapshot;
-  onReady: () => void;
-}) {
+function IframeSnapshot({ snapshot, onReady }: { snapshot: HeatmapSnapshot; onReady: () => void }) {
   const [available, setAvailable] = useState(true);
   const iframeUrl = snapshot.url;
   const frameHeight = getSnapshotFrameHeight(snapshot);
@@ -1065,10 +1088,11 @@ function CanvasLoading() {
 }
 
 function EmptyState({ message }: { message?: string } = {}) {
+  const { t, labels, messages } = useMessages();
   return (
     <Column alignItems="center" justifyContent="center" minHeight="360px" gap>
-      {!message && <Heading size="lg">Select a page</Heading>}
-      <Text color="muted">{message ?? 'Choose a page from the list to view its heatmap.'}</Text>
+      {!message && <Heading size="lg">{t(labels.selectPage)}</Heading>}
+      <Text color="muted">{message ?? t(messages.heatmapChoosePage)}</Text>
     </Column>
   );
 }

@@ -1,0 +1,10 @@
+﻿.scroll {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  min-width: 880px;
+  font-variant-numeric: tabular-nums;
+}

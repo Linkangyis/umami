@@ -23,8 +23,8 @@ export function HeatmapsPage({ websiteId }: { websiteId: string }) {
   const { hasFeature, cloudMode, isLoading } = useSubscription(website?.teamId);
 
   const buttons = [
-    { id: 'click', label: 'Clicks' },
-    { id: 'scroll', label: 'Scroll' },
+    { id: 'click', label: t(labels.clicks) },
+    { id: 'scroll', label: t(labels.scroll) },
   ];
 
   if (isLoading) {
@@ -38,7 +38,7 @@ export function HeatmapsPage({ websiteId }: { websiteId: string }) {
           <EmptyPlaceholder
             icon={<Flame />}
             title={t(messages.upgradeRequired, { plan: 'Business' })}
-            description="View click and scroll heatmaps for your pages."
+            description={t(messages.heatmapDescription)}
           >
             <Button
               variant="primary"
@@ -70,7 +70,7 @@ export function HeatmapsPage({ websiteId }: { websiteId: string }) {
                   <SearchField
                     value={search}
                     onSearch={setSearch}
-                    placeholder="Search"
+                    placeholder={t(labels.search)}
                     className="w-full max-w-md"
                   />
                 </Row>
@@ -87,7 +87,7 @@ export function HeatmapsPage({ websiteId }: { websiteId: string }) {
                 <SearchField
                   value={search}
                   onSearch={setSearch}
-                  placeholder="Search"
+                  placeholder={t(labels.search)}
                   className="w-full max-w-md"
                 />
                 <FilterButtons

@@ -289,38 +289,38 @@ export function PropertyDateChart({
       >
         <MetricsBar padding="2">
           <InsightCard
-            label="Top weekday"
-            value={topWeekday?.label ?? 'None'}
+            label={t(labels.topWeekday)}
+            value={topWeekday?.label ?? t(labels.none)}
             hint={
               topWeekday
-                ? `${topWeekday.count.toLocaleString(locale)} count - ${Math.round(topWeekday.percent)}%`
+                ? `${topWeekday.count.toLocaleString(locale)} ${t(labels.count)} - ${Math.round(topWeekday.percent)}%`
                 : undefined
             }
           />
           <InsightCard
-            label="Top date"
-            value={topDateByDay ? formatDate(topDateByDay.date, 'PP', locale) : 'None'}
+            label={t(labels.topDate)}
+            value={topDateByDay ? formatDate(topDateByDay.date, 'PP', locale) : t(labels.none)}
             hint={
               topDateByDay
-                ? `${topDateByDay.count.toLocaleString(locale)} count - ${Math.round((topDateByDay.count / total) * 100)}%`
+                ? `${topDateByDay.count.toLocaleString(locale)} ${t(labels.count)} - ${Math.round((topDateByDay.count / total) * 100)}%`
                 : undefined
             }
           />
           <InsightCard
-            label="Earliest date"
-            value={minPropertyDate ? formatDate(minPropertyDate, 'PP', locale) : 'None'}
+            label={t(labels.earliestDate)}
+            value={minPropertyDate ? formatDate(minPropertyDate, 'PP', locale) : t(labels.none)}
             hint={
               minPropertyDate
-                ? formatDistance(minPropertyDate, zonedNow, { addSuffix: true })
+                ? formatDistance(minPropertyDate, zonedNow, { addSuffix: true, locale: dateLocale })
                 : undefined
             }
           />
           <InsightCard
-            label="Latest date"
-            value={maxPropertyDate ? formatDate(maxPropertyDate, 'PP', locale) : 'None'}
+            label={t(labels.latestDate)}
+            value={maxPropertyDate ? formatDate(maxPropertyDate, 'PP', locale) : t(labels.none)}
             hint={
               maxPropertyDate
-                ? formatDistance(maxPropertyDate, zonedNow, { addSuffix: true })
+                ? formatDistance(maxPropertyDate, zonedNow, { addSuffix: true, locale: dateLocale })
                 : undefined
             }
           />

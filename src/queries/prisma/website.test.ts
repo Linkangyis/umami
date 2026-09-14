@@ -25,6 +25,11 @@ vi.mock('@/lib/redis', () => ({
 
 function createDeleteTx(calls: string[]) {
   return {
+    eventRule: {
+      deleteMany: vi.fn(async () => {
+        calls.push('eventRule');
+      }),
+    },
     sessionReplaySaved: {
       deleteMany: vi.fn(async () => {
         calls.push('sessionReplaySaved');
@@ -136,6 +141,7 @@ describe('website delete dependencies', () => {
       'website-1',
     );
     expect(calls).toEqual([
+      'eventRule',
       'sessionReplaySaved',
       'sessionReplay',
       'heatmapEvent',
@@ -175,6 +181,7 @@ describe('website delete dependencies', () => {
       'website-1',
     );
     expect(calls).toEqual([
+      'eventRule',
       'sessionReplaySaved',
       'sessionReplay',
       'heatmapEvent',

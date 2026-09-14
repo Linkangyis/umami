@@ -59,6 +59,7 @@
     "@clickhouse/client": "^1.23.1",
     "@dicebear/collection": "^9.4.2",
     "@dicebear/core": "^9.4.3",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@playwright/test": "^1.62.0",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",

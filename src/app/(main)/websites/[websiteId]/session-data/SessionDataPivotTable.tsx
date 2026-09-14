@@ -101,7 +101,7 @@ export function SessionDataPivotTable({
           {(row: any) => renderTruncatedText(row[key] ?? '')}
         </DataColumn>
       ))}
-      <DataColumn id="distinctId" label="Distinct ID" width="220px">
+      <DataColumn id="distinctId" label={t(labels.distinctId)} width="220px">
         {(row: any) => renderTruncatedText(row.distinctId || '')}
       </DataColumn>
       <DataColumn id="createdAt" label={t(labels.created)} width="180px">

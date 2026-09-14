@@ -1,8 +1,8 @@
 import type { ComponentType } from 'react';
 import { TextBlock } from '@/app/(main)/boards/TextBlock';
-import { BoardFunnel } from '@/app/(main)/websites/[websiteId]/(reports)/funnels/BoardFunnel';
 import { LinkMetricsBar } from '@/app/(main)/links/[linkId]/LinkMetricsBar';
 import { PixelMetricsBar } from '@/app/(main)/pixels/[pixelId]/PixelMetricsBar';
+import { BoardFunnel } from '@/app/(main)/websites/[websiteId]/(reports)/funnels/BoardFunnel';
 import { BoardGoal } from '@/app/(main)/websites/[websiteId]/(reports)/goals/BoardGoal';
 import { BoardRevenueChart } from '@/app/(main)/websites/[websiteId]/(reports)/revenue/BoardRevenueChart';
 import { BoardRevenueMetricsBar } from '@/app/(main)/websites/[websiteId]/(reports)/revenue/BoardRevenueMetricsBar';
@@ -32,6 +32,7 @@ import { MetricsTable } from '@/components/metrics/MetricsTable';
 import { WeeklyTraffic } from '@/components/metrics/WeeklyTraffic';
 import { WorldMap } from '@/components/metrics/WorldMap';
 import { CURRENCIES, DEFAULT_CURRENCY } from '@/lib/constants';
+import { translateBoardComponentText } from './boardComponentLocale';
 
 export interface ConfigField {
   name: string;
@@ -92,16 +93,7 @@ const METRIC_TYPES = [
 ];
 
 const PIXEL_LINK_METRIC_TYPES = METRIC_TYPES.filter(({ value }) =>
-  [
-    'referrer',
-    'channel',
-    'browser',
-    'os',
-    'device',
-    'country',
-    'region',
-    'city',
-  ].includes(value),
+  ['referrer', 'channel', 'browser', 'os', 'device', 'country', 'region', 'city'].includes(value),
 );
 
 const LIMIT_OPTIONS = [
@@ -408,8 +400,29 @@ const componentDefinitions: ComponentDefinition[] = [
 
 const definitionMap = new Map(componentDefinitions.map(def => [def.type, def]));
 
-export function getComponentDefinitions(): ComponentDefinition[] {
-  return componentDefinitions;
+export function getComponentDefinitions(locale?: string): ComponentDefinition[] {
+  if (!locale?.startsWith('zh')) return componentDefinitions;
+  const translate = (value: string) => translateBoardComponentText(value, locale);
+  const options = (values?: { label: string; value: string }[]) =>
+    values?.map(option => ({ ...option, label: translate(option.label) }));
+  return componentDefinitions.map(def => ({
+    ...def,
+    name: translate(def.name),
+    description: translate(def.description),
+    configFields: def.configFields?.map(field => ({
+      ...field,
+      label: translate(field.label),
+      options: options(field.options),
+      optionsByEntityType: field.optionsByEntityType
+        ? Object.fromEntries(
+            Object.entries(field.optionsByEntityType).map(([entity, values]) => [
+              entity,
+              options(values),
+            ]),
+          )
+        : undefined,
+    })),
+  }));
 }
 
 export function getComponentDefinition(type: string): ComponentDefinition | undefined {

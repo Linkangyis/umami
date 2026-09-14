@@ -1,8 +1,10 @@
 import { getQueryFilters, parseRequest } from '@/lib/request';
 import { json, unauthorized } from '@/lib/response';
 import { filterParams, pagingParams, searchParams, withDateRange } from '@/lib/schema';
+import { redactSessionIp } from '@/lib/session-ip';
 import { canViewWebsiteSection } from '@/permissions';
 import { getWebsiteSessions } from '@/queries/sql';
+import { getWebsiteSessionIps } from '@/queries/sql/sessions/getWebsiteSessionIps';
 
 export async function GET(
   request: Request,
@@ -28,7 +30,20 @@ export async function GET(
 
   const filters = await getQueryFilters(query, websiteId);
 
-  const data = await getWebsiteSessions(websiteId, filters);
+  const includeIp = !!auth?.user && !auth?.shareToken;
+  const data = await getWebsiteSessions(websiteId, filters, { includeIpSearch: includeIp });
+  const ips = includeIp
+    ? await getWebsiteSessionIps(
+        websiteId,
+        data.data.map(row => row.id),
+      )
+    : {};
 
-  return json(data);
+  return json({
+    ...data,
+    data: data.data.map(row => ({
+      ...redactSessionIp(row),
+      ...(includeIp ? { ip: ips[row.id] || null } : {}),
+    })),
+  });
 }

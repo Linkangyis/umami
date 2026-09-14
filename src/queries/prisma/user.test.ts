@@ -1,13 +1,15 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { getUserByUsername } from './user';
+import { getUser, getUserByUsername } from './user';
 
-const { findUniqueMock } = vi.hoisted(() => ({
+const { findUniqueMock, primaryFindUniqueMock } = vi.hoisted(() => ({
   findUniqueMock: vi.fn(),
+  primaryFindUniqueMock: vi.fn(),
 }));
 
 vi.mock('@/lib/prisma', () => ({
   default: {
     client: {
+      $primary: () => ({ user: { findUnique: primaryFindUniqueMock } }),
       user: {
         findUnique: findUniqueMock,
       },
@@ -18,7 +20,21 @@ vi.mock('@/lib/prisma', () => ({
 describe('getUserByUsername', () => {
   beforeEach(() => {
     findUniqueMock.mockReset();
+    primaryFindUniqueMock.mockReset();
     findUniqueMock.mockResolvedValue(null);
+  });
+
+  test('reads authentication data from the primary client without consulting the replica', async () => {
+    primaryFindUniqueMock.mockResolvedValue({ id: 'user-1', password: 'current-hash' });
+    const user = await getUser('user-1', { includePassword: true, usePrimary: true });
+    expect(user).toMatchObject({ id: 'user-1', password: 'current-hash' });
+    expect(primaryFindUniqueMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'user-1', deletedAt: null },
+        select: expect.objectContaining({ password: true }),
+      }),
+    );
+    expect(findUniqueMock).not.toHaveBeenCalled();
   });
 
   test('normalizes usernames to lowercase before lookup', async () => {

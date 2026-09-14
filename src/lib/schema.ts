@@ -288,7 +288,7 @@ export const heatmapReportSchema = z.object({
   parameters: z.object({
     startDate: z.coerce.date(),
     endDate: z.coerce.date(),
-    urlPath: z.string().max(500).optional(),
+    urlPath: z.string().max(2183).optional(),
     mode: z.enum(['click', 'scroll']).optional(),
   }),
 });

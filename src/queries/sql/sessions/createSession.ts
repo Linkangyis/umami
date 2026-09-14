@@ -2,6 +2,7 @@ import type { Prisma } from '@/generated/prisma/client';
 import { FIELD_LENGTH } from '@/lib/constants';
 import { truncateString } from '@/lib/format';
 import prisma from '@/lib/prisma';
+import { getStoredSessionIp } from '@/lib/session-ip';
 
 const FUNCTION_NAME = 'createSession';
 
@@ -9,6 +10,7 @@ export async function createSession(data: Prisma.SessionCreateInput) {
   const { writeRawQuery } = prisma;
   const normalizedData: Prisma.SessionCreateInput = {
     ...data,
+    ip: getStoredSessionIp(data.ip),
     browser: truncateString(data.browser, FIELD_LENGTH.browser),
     os: truncateString(data.os, FIELD_LENGTH.os),
     device: truncateString(data.device, FIELD_LENGTH.device),
@@ -33,6 +35,7 @@ export async function createSession(data: Prisma.SessionCreateInput) {
       country,
       region,
       city,
+      ip,
       distinct_id,
       created_at
     )
@@ -47,10 +50,15 @@ export async function createSession(data: Prisma.SessionCreateInput) {
       {{country}},
       {{region}},
       {{city}},
+      {{ip}},
       {{distinctId}},
       {{createdAt}}
     )
-    on conflict (session_id) do nothing
+    on conflict (session_id) do update
+      set ip = excluded.ip
+      where session.website_id = excluded.website_id
+        and session.ip is null
+        and excluded.ip is not null
     `,
     normalizedData,
     FUNCTION_NAME,

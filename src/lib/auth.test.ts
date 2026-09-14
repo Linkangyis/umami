@@ -57,6 +57,24 @@ beforeEach(() => {
 });
 
 describe('checkAuth password fingerprint', () => {
+  test('rejects a two-factor challenge before granting user access', async () => {
+    parseSecureTokenMock.mockReturnValue({ userId: 'user-1', type: 'partial-auth' } as any);
+    mockUser();
+    expect(await checkAuth(authedRequest())).toBeNull();
+    expect(getUserMock).not.toHaveBeenCalled();
+  });
+
+  test('does not resolve Redis sessions from tokens issued for another purpose', async () => {
+    redisMock.enabled = true;
+    parseSecureTokenMock.mockReturnValue({
+      authKey: 'auth:session-key',
+      type: 'partial-auth',
+    } as any);
+    redisMock.client.get.mockResolvedValue({ userId: 'user-1' });
+    expect(await checkAuth(authedRequest())).toBeNull();
+    expect(redisMock.client.get).not.toHaveBeenCalled();
+  });
+
   test('authorizes a stateless token whose fingerprint matches the current password', async () => {
     parseSecureTokenMock.mockReturnValue({ userId: 'user-1', pwd: hash(PASSWORD_HASH) } as any);
     mockUser();
@@ -64,6 +82,7 @@ describe('checkAuth password fingerprint', () => {
     const result = await checkAuth(authedRequest());
 
     expect(result?.user?.id).toBe('user-1');
+    expect(getUserMock).toHaveBeenCalledWith('user-1', { includePassword: true, usePrimary: true });
   });
 
   test('authorizes a legacy stateless token that does not include a password fingerprint', async () => {

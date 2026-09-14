@@ -150,7 +150,11 @@ export function PropertyNumericChart({
             value={stats?.average ?? 0}
             formatValue={formatLongNumber}
           />
-          <MetricCard label="Median" value={stats?.median ?? 0} formatValue={formatLongNumber} />
+          <MetricCard
+            label={t(labels.median)}
+            value={stats?.median ?? 0}
+            formatValue={formatLongNumber}
+          />
           <MetricCard
             label={t(labels.max)}
             value={stats?.max ?? 0}

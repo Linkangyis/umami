@@ -9,6 +9,7 @@ vi.mock('@/components/hooks', () => ({
     labels: {
       name: 'Name',
       shareUrl: 'Share URL',
+      copyUrl: 'Copy URL',
       edit: 'Edit',
       delete: 'Delete',
       share: 'Share',

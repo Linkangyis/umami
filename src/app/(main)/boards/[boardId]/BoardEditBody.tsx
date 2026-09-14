@@ -3,13 +3,14 @@ import { produce } from 'immer';
 import { Fragment, useEffect, useRef } from 'react';
 import { Group, type GroupImperativeHandle, Panel, Separator } from 'react-resizable-panels';
 import { v4 as uuid } from 'uuid';
-import { useBoard } from '@/components/hooks';
+import { useBoard, useMessages } from '@/components/hooks';
 import { GripHorizontal, Plus } from '@/components/icons';
 import { getBoardEntity, getBoardType, requiresBoardEntity } from '@/lib/boards';
 import { BoardEditRow } from './BoardEditRow';
 import { BUTTON_ROW_HEIGHT, MAX_ROW_HEIGHT, MIN_ROW_HEIGHT } from './boardConstants';
 
 export function BoardEditBody({ requiresBoardWebsite = true }: { requiresBoardWebsite?: boolean }) {
+  const { t, labels } = useMessages();
   const { board, updateBoard, registerLayoutGetter } = useBoard();
   const rowGroupRef = useRef<GroupImperativeHandle>(null);
   const columnGroupRefs = useRef<Map<string, GroupImperativeHandle>>(new Map());
@@ -169,7 +170,7 @@ export function BoardEditBody({ requiresBoardWebsite = true }: { requiresBoardWe
                     <Plus />
                   </Icon>
                 </Button>
-                <Tooltip placement="right">Add row</Tooltip>
+                <Tooltip placement="right">{t(labels.addRow)}</Tooltip>
               </TooltipTrigger>
             </Row>
           </Panel>

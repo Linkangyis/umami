@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getPageMetadata } from '@/lib/page-metadata';
 import { LogoutPage } from './LogoutPage';
 
 export const dynamic = 'force-dynamic';
@@ -11,6 +12,6 @@ export default function () {
   return <LogoutPage />;
 }
 
-export const metadata: Metadata = {
-  title: 'Logout',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getPageMetadata('Logout');
+}

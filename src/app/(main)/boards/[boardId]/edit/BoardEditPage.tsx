@@ -21,7 +21,7 @@ export function BoardEditPage({ boardId }: { boardId: string }) {
         <>
           <Column marginTop="6">
             <Link href={renderUrl(`/boards/${boardId}`)}>
-              <IconLabel icon={<ArrowLeft />} label="Board" />
+              <IconLabel icon={<ArrowLeft />} label={t(labels.board)} />
             </Link>
           </Column>
           <PageHeader

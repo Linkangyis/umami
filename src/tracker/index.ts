@@ -1,3 +1,6 @@
+import { startVisualEditor } from './editor';
+import { getMatchingRules, type TrackingRule } from './rules';
+
 /** Public types for the browser tracker. */
 export type TrackedProperties = {
   /**
@@ -217,7 +220,6 @@ type MetricEntry = PerformanceEntry & {
     location,
     document,
     history,
-    top,
     doNotTrack,
   } = window;
   const { currentScript, referrer } = document as TrackerDocument;
@@ -250,11 +252,30 @@ type MetricEntry = PerformanceEntry & {
   const credentials = (config('fetch-credentials') || 'omit') as RequestCredentials;
   const perf = config('performance') === _true;
   const autoPageview = config('auto-pageview') !== _false;
+  const autoEvents = config('auto-events') !== _false;
 
   const domains = domain.split(',').map(n => n.trim());
   const host =
     hostUrl || '__COLLECT_API_HOST__' || currentScript.src.split('/').slice(0, -1).join('/');
   const endpoint = `${host.replace(/\/$/, '')}__COLLECT_API_ENDPOINT__`;
+  if (website && startVisualEditor({ websiteId: website, hostUrl: host })) return;
+  let eventRules: TrackingRule[] = [];
+  let rulesLoadedAt = 0;
+  const refreshRules = async () => {
+    if (!website || Date.now() - rulesLoadedAt < 30000) return;
+    rulesLoadedAt = Date.now();
+    try {
+      const response = await fetch(
+        `${host.replace(/\/$/, '')}/api/event-rules?websiteId=${encodeURIComponent(website)}`,
+        { credentials: 'omit', cache: 'no-cache' },
+      );
+      if (!response.ok) return;
+      const result = await response.json();
+      if (Array.isArray(result?.rules)) eventRules = result.rules.slice(0, 100);
+    } catch {
+      /* Optional configuration must not interrupt pageview collection. */
+    }
+  };
   const screen = `${width}x${height}`;
   const eventRegex = /data-umami-event-([\w-_]+)/;
   const eventNameAttribute = `${_data}umami-event`;
@@ -301,15 +322,20 @@ type MetricEntry = PerformanceEntry & {
   const handlePush = (_state: unknown, _title: string, url?: string | URL | null) => {
     if (!url) return;
 
+    const nextUrl = normalize(url);
+    if (nextUrl === currentUrl) return;
+
     if (typeof flushPerformance === 'function') {
       flushPerformance();
     }
 
     currentRef = currentUrl;
-    currentUrl = normalize(url);
+    currentUrl = nextUrl;
+    refreshRules();
 
     if (currentUrl !== currentRef && autoPageview) {
-      setTimeout(track, delayDuration);
+      const payload = getPayload();
+      setTimeout(() => send({ ...payload, title: document.title }), delayDuration);
     }
   };
 
@@ -329,6 +355,9 @@ type MetricEntry = PerformanceEntry & {
 
     history.pushState = hook(history, 'pushState', handlePush);
     history.replaceState = hook(history, 'replaceState', handlePush);
+    const onNavigation = () => handlePush(null, '', location.href);
+    window.addEventListener('popstate', onNavigation);
+    window.addEventListener('hashchange', onNavigation);
   };
 
   const handleClicks = () => {
@@ -346,29 +375,70 @@ type MetricEntry = PerformanceEntry & {
       }
     };
     const onClick = (e: MouseEvent) => {
-      const el = e.target as Element;
+      const el = e.target instanceof Element ? e.target : null;
+      if (!el || el.closest('[data-umami-ignore]')) return;
       const eventEl = el.closest(`[${eventNameAttribute}]`);
-      if (!eventEl) return;
-
-      if (eventEl.tagName === 'A' && (eventEl as HTMLAnchorElement).href) {
-        const { href, target } = eventEl as HTMLAnchorElement;
-        const external =
-          target === '_blank' ||
-          e.ctrlKey ||
-          e.shiftKey ||
-          e.metaKey ||
-          (e.button && e.button === 1);
-        if (!external) e.preventDefault();
-        return trackElement(eventEl).finally(() => {
-          if (!external) {
-            (target === '_top' ? (top as WindowProxy).location : location).href = href;
-          }
-        });
+      if (eventEl && eventEl.tagName !== 'FORM') {
+        // Forms are tracked on submit, not whenever one of their fields is clicked.
+        return trackElement(eventEl);
       }
-
-      return trackElement(eventEl);
+      const matchedRules = getMatchingRules(eventRules, el, 'click', currentUrl);
+      if (matchedRules.length) {
+        return Promise.all(matchedRules.map(rule => track(rule.name, { rule_id: rule.id })));
+      }
+      if (!autoEvents) return;
+      const interactive = el.closest(
+        'a[href], button, [role="button"], input[type="button"], input[type="submit"]',
+      );
+      if (!interactive || interactive.matches(':disabled, [aria-disabled="true"]')) return;
+      const eventData: EventData = { element: interactive.tagName.toLowerCase() };
+      if (interactive.id) eventData.element_id = interactive.id;
+      let eventName = 'button-click';
+      if (interactive instanceof HTMLAnchorElement) {
+        let targetUrl: URL;
+        try {
+          targetUrl = new URL(interactive.href, location.href);
+        } catch {
+          return;
+        }
+        if (!['http:', 'https:'].includes(targetUrl.protocol)) return;
+        eventData.target_host = targetUrl.hostname;
+        // Do not collect link query values (which may contain tokens or form data).
+        eventData.target_path = targetUrl.pathname;
+        eventName =
+          interactive.hasAttribute('download') ||
+          /\.(?:pdf|zip|rar|7z|docx?|xlsx?|pptx?|csv|mp3|mp4|exe|dmg|apk)$/i.test(
+            targetUrl.pathname,
+          )
+            ? 'file-download'
+            : targetUrl.origin !== origin
+              ? 'outbound-click'
+              : 'link-click';
+      }
+      return track(eventName, eventData);
     };
     document.addEventListener('click', onClick, true);
+    document.addEventListener(
+      'submit',
+      e => {
+        const form = e.target;
+        if (!(form instanceof HTMLFormElement) || form.closest('[data-umami-ignore]')) return;
+        if (form.hasAttribute(eventNameAttribute)) {
+          trackElement(form);
+          return;
+        }
+        const matchedRules = getMatchingRules(eventRules, form, 'submit', currentUrl);
+        if (matchedRules.length) {
+          matchedRules.forEach(rule => {
+            track(rule.name, { rule_id: rule.id });
+          });
+        } else if (autoEvents) {
+          // Record the submission action, never field names, values, or form contents.
+          track('form-submit', { element: 'form', ...(form.id ? { element_id: form.id } : {}) });
+        }
+      },
+      true,
+    );
   };
 
   /* Tracking functions */
@@ -421,6 +491,7 @@ type MetricEntry = PerformanceEntry & {
   const init = () => {
     if (!initialized) {
       initialized = true;
+      refreshRules();
       if (autoPageview) track();
       handlePathChanges();
       handleClicks();

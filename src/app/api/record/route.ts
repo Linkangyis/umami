@@ -7,7 +7,7 @@ import { secret } from '@/lib/crypto';
 import { getClientInfo, hasBlockedIp } from '@/lib/detect';
 import { parseToken } from '@/lib/jwt';
 import { fetchAccount, fetchTeam } from '@/lib/load';
-import { getRecorderConfig } from '@/lib/recorder';
+import { getRecorderConfig, getRecorderPagePath } from '@/lib/recorder';
 import { getReplayEventCount } from '@/lib/replay';
 import { parseRequest } from '@/lib/request';
 import { badRequest, forbidden, json, payloadTooLarge, serverError } from '@/lib/response';
@@ -40,7 +40,7 @@ const schema = z.discriminatedUnion('type', [
           z.discriminatedUnion('type', [
             z.object({
               type: z.literal('click'),
-              url: z.string(),
+              url: z.string().max(2183),
               x: z.coerce.number().optional(),
               y: z.coerce.number().optional(),
               pageX: z.coerce.number().optional(),
@@ -53,7 +53,7 @@ const schema = z.discriminatedUnion('type', [
             }),
             z.object({
               type: z.literal('scroll'),
-              url: z.string(),
+              url: z.string().max(2183),
               scrollPct: z.coerce.number().optional(),
               pageW: z.coerce.number().optional(),
               pageH: z.coerce.number().optional(),
@@ -68,14 +68,6 @@ const schema = z.discriminatedUnion('type', [
     }),
   }),
 ]);
-
-function getUrlPath(url: string) {
-  try {
-    return new URL(url).pathname || '/';
-  } catch {
-    return url.startsWith('/') ? url.split(/[?#]/)[0] || '/' : '/';
-  }
-}
 
 async function getRequestBodySize(request: Request): Promise<number | null> {
   const contentLength = request.headers.get('content-length');
@@ -233,7 +225,7 @@ export async function POST(request: Request) {
         viewportH: event.viewportH ?? null,
         pageH: event.pageH ?? null,
         scrollPct: event.type === 'scroll' ? (event.scrollPct ?? null) : null,
-        urlPath: getUrlPath(event.url),
+        urlPath: getRecorderPagePath(event.url) ?? '/',
         createdAt: new Date(event.timestamp ?? fallbackMs),
       }));
 

@@ -156,7 +156,7 @@ export function BoardCloneForm({
                   {t(labels.cancel)}
                 </Button>
               )}
-              <FormSubmitButton isDisabled={isPending}>Clone</FormSubmitButton>
+              <FormSubmitButton isDisabled={isPending}>{t(labels.clone)}</FormSubmitButton>
             </Row>
           </>
         );
