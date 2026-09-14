@@ -64,12 +64,45 @@ function parseHeaderValue(header: string, value: string) {
   }
 
   if (header === 'forwarded') {
-    const match = value.match(/for=(\[?[0-9a-fA-F:.]+]?)/);
-
-    return match ? resolveIp(match[1]) : undefined;
+    const first = splitForwarded(value, ',')[0];
+    const parameter = splitForwarded(first, ';').find(part => /^\s*for\s*=/i.test(part));
+    if (!parameter) return undefined;
+    let node = parameter.slice(parameter.indexOf('=') + 1).trim();
+    if (node.startsWith('"')) {
+      if (!node.endsWith('"')) return undefined;
+      node = node.slice(1, -1).replace(/\\(.)/g, '$1');
+    }
+    const ip = resolveIp(node);
+    // An unknown/obfuscated first hop must never be replaced by a later proxy address.
+    return ip && ipaddr.isValid(ip) ? ip : undefined;
   }
 
   return resolveIp(value);
+}
+
+function splitForwarded(value: string, separator: ',' | ';') {
+  const result: string[] = [];
+  let start = 0;
+  let quoted = false;
+  let escaped = false;
+  for (let index = 0; index < value.length; index++) {
+    const character = value[index];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (quoted && character === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (character === '"') quoted = !quoted;
+    else if (!quoted && character === separator) {
+      result.push(value.slice(start, index));
+      start = index + 1;
+    }
+  }
+  result.push(value.slice(start));
+  return result;
 }
 
 export function getIpAddress(headers: Headers) {
@@ -92,19 +125,12 @@ export function stripPort(ip?: string | null) {
     return ip;
   }
 
-  if (ip.startsWith('[')) {
-    const endBracket = ip.indexOf(']');
-    if (endBracket !== -1) {
-      return ip.slice(0, endBracket + 1);
-    }
-  }
-
-  const idx = ip.lastIndexOf(':');
-  if (idx !== -1) {
-    if (ip.includes('.') || /^[a-zA-Z0-9.-]+$/.test(ip.slice(0, idx))) {
-      return ip.slice(0, idx);
-    }
-  }
+  // Valid IPv6 (including mapped IPv4) contains colons that are not a port separator.
+  if (ipaddr.isValid(ip)) return ip;
+  const bracketed = ip.match(/^\[([^\]]+)\](?::(?:\d+|_[a-zA-Z0-9._-]+))?$/);
+  if (bracketed) return bracketed[1];
+  const ipv4Port = ip.match(/^(\d+\.\d+\.\d+\.\d+):(?:\d+|_[a-zA-Z0-9._-]+)$/);
+  if (ipv4Port) return ipv4Port[1];
 
   return ip;
 }

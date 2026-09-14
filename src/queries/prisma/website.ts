@@ -9,10 +9,6 @@ import { z } from 'zod';
 const WEBSITE_SORT_FIELDS = ['name', 'domain', 'createdAt'] as const;
 
 async function deleteWebsiteDependentData(tx: any, websiteId: string) {
-  await tx.eventRule.deleteMany({
-    where: { websiteId },
-  });
-
   await tx.sessionReplaySaved.deleteMany({
     where: { websiteId },
   });
@@ -231,6 +227,11 @@ export async function deleteWebsite(websiteId: string) {
 
   return transaction(
     async tx => {
+      await tx.campaignLink.deleteMany({ where: { websiteId } });
+      await tx.campaignParameter.deleteMany({ where: { websiteId } });
+      await tx.websiteIpRule.deleteMany({ where: { websiteId } });
+      await tx.contentGroup.deleteMany({ where: { websiteId } });
+      await tx.eventRule.deleteMany({ where: { websiteId } });
       await deleteWebsiteDependentData(tx, websiteId);
 
       await tx.report.deleteMany({

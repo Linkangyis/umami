@@ -12,6 +12,8 @@ import { badRequest, forbidden, json, serverError } from '@/lib/response';
 import { anyObjectParam, urlOrPathParam } from '@/lib/schema';
 import { getStoredSessionIp } from '@/lib/session-ip';
 import { safeDecodeURI, safeDecodeURIComponent } from '@/lib/url';
+import { getCollectorWebsite } from '@/queries/prisma/collectorWebsite';
+import { hasWebsiteBlockedIp } from '@/queries/prisma/ipRule';
 import {
   createSession,
   saveEvent,
@@ -117,12 +119,16 @@ export async function POST(request: Request) {
     let cache: Cache | null = null;
 
     if (websiteId) {
+      // A valid session cache cannot authorize collection after a website is deleted.
+      if (!(await getCollectorWebsite(websiteId))) {
+        return badRequest({ message: 'Website not found.' });
+      }
       const cacheHeader = request.headers.get('x-umami-cache');
 
       if (cacheHeader) {
         const result = await parseToken(cacheHeader, secret());
 
-        if (result?.type === CACHE_TOKEN_TYPE) {
+        if (result?.type === CACHE_TOKEN_TYPE && result.websiteId === websiteId) {
           cache = result;
         }
       }
@@ -152,7 +158,7 @@ export async function POST(request: Request) {
     }
 
     // IP block
-    if (hasBlockedIp(ip)) {
+    if (hasBlockedIp(ip) || (websiteId && (await hasWebsiteBlockedIp(websiteId, ip)))) {
       return forbidden();
     }
 

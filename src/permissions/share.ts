@@ -1,4 +1,3 @@
-import { ENTITY_TYPE } from '@/lib/constants';
 import type { Auth } from '@/lib/types';
 import { canViewWebsite } from './website';
 
@@ -40,7 +39,7 @@ type ShareSectionInput = ShareSection | ShareSection[];
 function shareTokenIncludesWebsite(auth: Auth | null | undefined, websiteId: string) {
   const { shareToken } = auth || {};
 
-  return (
+  return !!(
     shareToken?.websiteId === websiteId ||
     shareToken?.pixelId === websiteId ||
     shareToken?.linkId === websiteId ||
@@ -55,7 +54,7 @@ export async function canViewWebsiteSection(
   websiteId: string,
   section: ShareSectionInput,
 ) {
-  if (auth?.user) {
+  if (auth?.user && !auth.shareToken) {
     return canViewWebsite(auth, websiteId);
   }
 
@@ -78,7 +77,7 @@ export async function canViewWebsiteSection(
 }
 
 export async function canViewSharedWebsite(auth: Auth | null | undefined, websiteId: string) {
-  if (auth?.user) {
+  if (auth?.user && !auth.shareToken) {
     return canViewWebsite(auth, websiteId);
   }
 
@@ -89,20 +88,22 @@ export async function canViewSharedWebsiteFilters(
   auth: Auth | null | undefined,
   websiteId: string,
 ) {
-  if (auth?.user) {
+  if (auth?.user && !auth.shareToken) {
     return canViewWebsite(auth, websiteId);
   }
 
   const { shareToken } = auth || {};
 
-  return shareTokenIncludesWebsite(auth, websiteId) && shareToken?.parameters?.allowFilter !== false;
+  return (
+    shareTokenIncludesWebsite(auth, websiteId) && shareToken?.parameters?.allowFilter !== false
+  );
 }
 
 export async function canViewAuthenticatedWebsite(
   auth: Auth | null | undefined,
   websiteId: string,
 ) {
-  if (!auth?.user) {
+  if (!auth?.user || auth.shareToken) {
     return false;
   }
 

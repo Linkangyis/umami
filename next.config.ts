@@ -58,7 +58,7 @@ const trackerHeaders = [
   },
   {
     key: 'Cache-Control',
-    value: 'public, max-age=86400, must-revalidate',
+    value: 'public, max-age=0, s-maxage=60, must-revalidate',
   },
 ];
 
@@ -81,7 +81,7 @@ const apiHeaders = [
   },
   {
     key: 'Cache-Control',
-    value: 'no-cache',
+    value: 'no-store',
   },
 ];
 

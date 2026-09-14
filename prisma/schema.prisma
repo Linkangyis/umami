@@ -107,7 +107,11 @@ model Website {
   sessionReplays      SessionReplay[]
   sessionReplaysSaved SessionReplaySaved[]
   heatmapEvents       HeatmapEvent[]
+  contentGroups      ContentGroup[]
   eventRules          EventRule[]
+  ipRules             WebsiteIpRule[]
+  campaignLinks       CampaignLink[]
+  campaignParameters  CampaignParameter[]
 
   @@index([userId])
   @@index([teamId])
@@ -537,4 +541,68 @@ model AppSetting {
   value String
 
   @@map("app_setting")
+}
+
+model ContentGroup {
+  id        String   @id() @map("content_group_id") @db.Uuid
+  websiteId String   @map("website_id") @db.Uuid
+  name      String   @db.VarChar(200)
+  rules     Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@index([websiteId, createdAt])
+  @@map("content_group")
+}
+
+model WebsiteIpRule {
+  id        String   @id() @map("ip_rule_id") @db.Uuid
+  websiteId String   @map("website_id") @db.Uuid
+  pattern   String   @db.VarChar(100)
+  name      String   @db.VarChar(100)
+  isEnabled Boolean  @default(true) @map("is_enabled")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@unique([websiteId, pattern])
+  @@index([websiteId, isEnabled])
+  @@map("website_ip_rule")
+}
+
+model CampaignLink {
+  id             String   @id() @map("campaign_link_id") @db.Uuid
+  websiteId      String   @map("website_id") @db.Uuid
+  name           String   @db.VarChar(100)
+  destinationUrl String   @map("destination_url") @db.VarChar(2183)
+  url            String   @db.VarChar(2183)
+  utmSource      String   @map("utm_source") @db.VarChar(200)
+  utmMedium      String   @default("") @map("utm_medium") @db.VarChar(200)
+  utmCampaign    String   @default("") @map("utm_campaign") @db.VarChar(200)
+  utmTerm        String   @default("") @map("utm_term") @db.VarChar(200)
+  utmContent     String   @default("") @map("utm_content") @db.VarChar(200)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  website        Website  @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@index([websiteId, createdAt])
+  @@map("campaign_link")
+}
+
+model CampaignParameter {
+  id        String   @id() @map("campaign_parameter_id") @db.Uuid
+  websiteId String   @map("website_id") @db.Uuid
+  field     String   @db.VarChar(20)
+  value     String   @db.VarChar(200)
+  label     String   @default("") @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  website   Website  @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@unique([websiteId, field, value])
+  @@index([websiteId, field])
+  @@map("campaign_parameter")
 }

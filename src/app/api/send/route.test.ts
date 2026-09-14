@@ -12,6 +12,8 @@ import { getClientInfo, hasBlockedIp } from '@/lib/detect';
 import { createToken, parseToken } from '@/lib/jwt';
 import { fetchWebsite } from '@/lib/load';
 import { parseRequest } from '@/lib/request';
+import { getCollectorWebsite } from '@/queries/prisma/collectorWebsite';
+import { hasWebsiteBlockedIp } from '@/queries/prisma/ipRule';
 import {
   createSession,
   saveEvent,
@@ -31,6 +33,8 @@ vi.mock('@/lib/detect', () => ({
 vi.mock('@/lib/load', () => ({
   fetchWebsite: vi.fn(),
 }));
+vi.mock('@/queries/prisma/ipRule', () => ({ hasWebsiteBlockedIp: vi.fn() }));
+vi.mock('@/queries/prisma/collectorWebsite', () => ({ getCollectorWebsite: vi.fn() }));
 
 vi.mock('@/lib/request', () => ({
   parseRequest: vi.fn(),
@@ -110,7 +114,9 @@ beforeEach(() => {
 
   isbotMock.mockReturnValue(false);
   hasBlockedIpMock.mockReturnValue(false);
+  vi.mocked(hasWebsiteBlockedIp).mockResolvedValue(false);
   fetchWebsiteMock.mockResolvedValue({ id: WEBSITE_ID } as any);
+  vi.mocked(getCollectorWebsite).mockResolvedValue({ id: WEBSITE_ID } as any);
   getClientInfoMock.mockResolvedValue({ ...defaultClientInfo } as any);
   createSessionMock.mockResolvedValue(undefined as any);
   saveEventMock.mockResolvedValue(undefined as any);
@@ -139,6 +145,69 @@ describe('parseRequest error handling', () => {
     expect(parseRequestMock.mock.calls[0][2]).toEqual({ skipAuth: true });
   });
 });
+
+test('new website IP exclusions apply to cached sessions before any writes', async () => {
+  const first = await callPOST({ type: 'event', payload: { website: WEBSITE_ID, url: '/' } });
+  const { cache } = await first.json();
+  saveEventMock.mockClear();
+  createSessionMock.mockClear();
+  vi.mocked(hasWebsiteBlockedIp).mockResolvedValue(true);
+  const blocked = await callPOST(
+    { type: 'event', payload: { website: WEBSITE_ID, url: '/second' } },
+    { headers: { 'x-umami-cache': cache } },
+  );
+  expect(blocked.status).toBe(403);
+  expect(hasWebsiteBlockedIp).toHaveBeenLastCalledWith(WEBSITE_ID, defaultClientInfo.ip);
+  expect(saveEventMock).not.toHaveBeenCalled();
+  expect(createSessionMock).not.toHaveBeenCalled();
+  vi.mocked(hasWebsiteBlockedIp).mockResolvedValue(false);
+  expect(
+    (
+      await callPOST(
+        { type: 'event', payload: { website: WEBSITE_ID, url: '/second' } },
+        { headers: { 'x-umami-cache': cache } },
+      )
+    ).status,
+  ).toBe(200);
+  expect(saveEventMock).toHaveBeenCalledTimes(1);
+});
+
+test('another website cache cannot bypass website lookup', async () => {
+  const first = await callPOST({ type: 'event', payload: { website: WEBSITE_ID, url: '/' } });
+  const { cache } = await first.json();
+  fetchWebsiteMock.mockClear();
+  fetchWebsiteMock.mockResolvedValue(null);
+  saveEventMock.mockClear();
+  const response = await callPOST(
+    { type: 'event', payload: { website: LINK_ID, url: '/' } },
+    { headers: { 'x-umami-cache': cache } },
+  );
+  expect(response.status).toBe(400);
+  expect(fetchWebsiteMock).toHaveBeenCalledWith(LINK_ID);
+  expect(saveEventMock).not.toHaveBeenCalled();
+});
+
+test.each(['event', 'identify', 'performance'])(
+  'a valid cache cannot collect %s after website deletion',
+  async type => {
+    const first = await callPOST({ type: 'event', payload: { website: WEBSITE_ID, url: '/' } });
+    const { cache } = await first.json();
+    vi.mocked(getCollectorWebsite).mockResolvedValue(null);
+    saveEventMock.mockClear();
+    createSessionMock.mockClear();
+    saveSessionDataMock.mockClear();
+    updateSessionMock.mockClear();
+    const response = await callPOST(
+      { type, payload: { website: WEBSITE_ID, url: '/' } },
+      { headers: { 'x-umami-cache': cache } },
+    );
+    expect(response.status).toBe(400);
+    expect(saveEventMock).not.toHaveBeenCalled();
+    expect(createSessionMock).not.toHaveBeenCalled();
+    expect(saveSessionDataMock).not.toHaveBeenCalled();
+    expect(updateSessionMock).not.toHaveBeenCalled();
+  },
+);
 
 describe('schema validation', () => {
   // The schema is passed to parseRequest; grab it and exercise safeParse directly.

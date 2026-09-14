@@ -62,6 +62,18 @@ beforeEach(() => {
   teamUserFindManyMock.mockReset();
 });
 
+test('global view-only owners cannot delete or transfer their websites', async () => {
+  vi.mocked(getWebsite).mockResolvedValue({ userId: viewOnlyUser.id } as any);
+  vi.mocked(getTeamUser).mockResolvedValue({ role: 'team-owner' } as any);
+  await expect(canDeleteWebsite({ user: viewOnlyUser }, 'website-1')).resolves.toBe(false);
+  await expect(
+    canTransferWebsiteToUser({ user: viewOnlyUser }, 'website-1', 'other'),
+  ).resolves.toBe(false);
+  await expect(canTransferWebsiteToTeam({ user: viewOnlyUser }, 'website-1', 'team')).resolves.toBe(
+    false,
+  );
+});
+
 describe('canViewWebsite', () => {
   test('allows admins without any lookup', async () => {
     await expect(canViewWebsite({ user: adminUser }, 'website-1')).resolves.toBe(true);
@@ -161,9 +173,7 @@ describe('canViewBatchWebsites', () => {
   });
 
   test('excludes team websites when the user is not a team member', async () => {
-    websiteFindManyMock.mockResolvedValue([
-      { id: 'team', userId: null, teamId: 'team-1' },
-    ] as any);
+    websiteFindManyMock.mockResolvedValue([{ id: 'team', userId: null, teamId: 'team-1' }] as any);
     teamUserFindManyMock.mockResolvedValue([] as any);
 
     await expect(canViewBatchWebsites({ user: normalUser }, ['team'])).resolves.toEqual([]);
@@ -203,6 +213,10 @@ describe('canCreateWebsite', () => {
 });
 
 describe('canUpdateWebsite', () => {
+  test('global view-only accounts cannot update even a personally owned website', async () => {
+    vi.mocked(getWebsite).mockResolvedValue({ userId: viewOnlyUser.id } as any);
+    await expect(canUpdateWebsite({ user: viewOnlyUser }, 'website-1')).resolves.toBe(false);
+  });
   test('denies when there is no user', async () => {
     await expect(canUpdateWebsite({}, 'website-1')).resolves.toBe(false);
   });

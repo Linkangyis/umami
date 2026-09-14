@@ -1,7 +1,7 @@
 import { isbot } from 'isbot';
 import { serializeError } from 'serialize-error';
 import { z } from 'zod';
-import { HEATMAP_EVENT_TYPE } from '@/lib/constants';
+import { CACHE_TOKEN_TYPE, HEATMAP_EVENT_TYPE } from '@/lib/constants';
 import { corsPreflight, withCorsHeaders } from '@/lib/cors';
 import { secret } from '@/lib/crypto';
 import { getClientInfo, hasBlockedIp } from '@/lib/detect';
@@ -11,11 +11,14 @@ import { getRecorderConfig, getRecorderPagePath } from '@/lib/recorder';
 import { getReplayEventCount } from '@/lib/replay';
 import { parseRequest } from '@/lib/request';
 import { badRequest, forbidden, json, payloadTooLarge, serverError } from '@/lib/response';
-import { getWebsite } from '@/queries/prisma';
+import { getCollectorWebsite } from '@/queries/prisma/collectorWebsite';
+import { hasWebsiteBlockedIp } from '@/queries/prisma/ipRule';
 import { saveRecording } from '@/queries/sql';
 import { saveHeatmapEvents } from '@/queries/sql/heatmap/saveHeatmapEvents';
 
 interface Cache {
+  type: string;
+  websiteId: string;
   sessionId: string;
   visitId: string;
 }
@@ -130,14 +133,19 @@ export async function POST(request: Request) {
 
     const cache = (await parseToken(cacheHeader, secret())) as Cache | null;
 
-    if (!cache?.sessionId || !cache?.visitId) {
+    if (
+      !cache?.sessionId ||
+      !cache?.visitId ||
+      cache.type !== CACHE_TOKEN_TYPE ||
+      cache.websiteId !== websiteId
+    ) {
       return withCorsHeaders(badRequest({ message: 'Invalid session token.' }));
     }
 
     const { sessionId, visitId } = cache;
 
-    // Query directly to avoid stale Redis cache for recorderEnabled
-    const website = await getWebsite(websiteId);
+    // Active status and recorder settings are authoritative on the primary.
+    const website = await getCollectorWebsite(websiteId);
 
     if (!website) {
       return withCorsHeaders(badRequest({ message: 'Website not found.' }));
@@ -170,7 +178,7 @@ export async function POST(request: Request) {
       return withCorsHeaders(json({ beep: 'boop' }));
     }
 
-    if (hasBlockedIp(ip)) {
+    if (hasBlockedIp(ip) || (await hasWebsiteBlockedIp(websiteId, ip))) {
       return withCorsHeaders(forbidden());
     }
 

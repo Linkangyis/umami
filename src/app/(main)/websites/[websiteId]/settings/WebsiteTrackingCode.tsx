@@ -1,6 +1,7 @@
 import { Column, Label, Switch, Text, TextField } from '@umami/react-zen';
 import { useState } from 'react';
 import { useConfig, useLocale, useMessages } from '@/components/hooks';
+import { withScriptVersion } from '@/lib/script-url';
 
 const SCRIPT_NAME = 'script.js';
 
@@ -32,7 +33,13 @@ export function WebsiteTrackingCode({
     }/${scriptName}`;
   };
 
-  const url = trackerScriptName?.startsWith('http') ? trackerScriptName : getUrl(trackerScriptName);
+  const externalScript = /^https?:\/\//i.test(trackerScriptName);
+  const url = externalScript
+    ? trackerScriptName
+    : withScriptVersion(
+        getUrl(trackerScriptName),
+        config?.cloudMode ? undefined : config?.scriptVersions?.tracker,
+      );
 
   const code = `<script defer src="${url}" data-website-id="${websiteId}" data-auto-events="${autoEvents}"></script>`;
 

@@ -1,14 +1,31 @@
 import { expect, test, vi } from 'vitest';
 import { ENTITY_TYPE } from '@/lib/constants';
 import {
+  canViewAuthenticatedWebsite,
   canViewSharedWebsite,
   canViewSharedWebsiteFilters,
   canViewWebsiteSection,
 } from './share';
+import { canViewWebsite } from './website';
 
 vi.mock('./website', () => ({
   canViewWebsite: vi.fn(),
 }));
+
+test('authenticated-only data cannot be unlocked by combining an unrelated login and share token', async () => {
+  vi.mocked(canViewWebsite).mockClear();
+  expect(
+    await canViewAuthenticatedWebsite(
+      { user: { id: 'unrelated' } as any, shareToken: { websiteId: 'shared-site' } },
+      'shared-site',
+    ),
+  ).toBe(false);
+  expect(canViewWebsite).not.toHaveBeenCalled();
+  vi.mocked(canViewWebsite).mockResolvedValue(true);
+  const auth = { user: { id: 'owner' } as any };
+  expect(await canViewAuthenticatedWebsite(auth, 'owned-site')).toBe(true);
+  expect(canViewWebsite).toHaveBeenCalledWith(auth, 'owned-site');
+});
 
 test('canViewWebsiteSection allows board shares for included websites', async () => {
   await expect(
@@ -43,6 +60,20 @@ test('canViewWebsiteSection respects section flags on website shares', async () 
       'goals',
     ),
   ).resolves.toBe(false);
+});
+
+test('a login alongside a share token does not bypass restricted sections or filters', async () => {
+  const auth = {
+    user: { id: 'unrelated' } as any,
+    shareToken: {
+      websiteId: 'website-1',
+      parameters: { overview: false, sessions: true, allowFilter: false },
+    },
+  };
+  expect(await canViewWebsiteSection(auth, 'website-1', 'overview')).toBe(false);
+  expect(await canViewWebsiteSection(auth, 'website-1', 'sessions')).toBe(true);
+  expect(await canViewSharedWebsiteFilters(auth, 'website-1')).toBe(false);
+  expect(await canViewSharedWebsite(auth, 'another-site')).toBe(false);
 });
 
 test('canViewWebsiteSection allows any requested enabled section', async () => {

@@ -262,7 +262,15 @@ export function McpSettingsPage() {
                 </Button>
               </Row>
               {issued && (
-                <Column gap="3" border borderRadius padding="4" data-test="mcp-issued-token">
+                <Column
+                  gap="3"
+                  border
+                  borderRadius
+                  padding="4"
+                  data-test="mcp-issued-token"
+                  className="rr-block"
+                  data-umami-ignore
+                >
                   <Text weight="bold">
                     {t(
                       '请立即复制并妥善保存，关闭后无法再次查看。',

@@ -1,5 +1,5 @@
 import { hasPermission } from '@/lib/auth';
-import { PERMISSIONS } from '@/lib/constants';
+import { PERMISSIONS, ROLES } from '@/lib/constants';
 import { getEntity } from '@/lib/entity';
 import prisma from '@/lib/prisma';
 import type { Auth } from '@/lib/types';
@@ -129,7 +129,7 @@ export async function canCreateWebsite({ user }: Auth) {
 }
 
 export async function canUpdateWebsite({ user }: Auth, websiteId: string) {
-  if (!user) {
+  if (!user || user.role === ROLES.viewOnly) {
     return false;
   }
 
@@ -157,7 +157,7 @@ export async function canUpdateWebsite({ user }: Auth, websiteId: string) {
 }
 
 export async function canDeleteWebsite({ user }: Auth, websiteId: string) {
-  if (!user) {
+  if (!user || user.role === ROLES.viewOnly) {
     return false;
   }
 
@@ -185,7 +185,7 @@ export async function canDeleteWebsite({ user }: Auth, websiteId: string) {
 }
 
 export async function canTransferWebsiteToUser({ user }: Auth, websiteId: string, userId: string) {
-  if (!user) {
+  if (!user || user.role === ROLES.viewOnly) {
     return false;
   }
 
@@ -209,7 +209,7 @@ export async function canTransferWebsiteToUser({ user }: Auth, websiteId: string
 }
 
 export async function canTransferWebsiteToTeam({ user }: Auth, websiteId: string, teamId: string) {
-  if (!user) {
+  if (!user || user.role === ROLES.viewOnly) {
     return false;
   }
 

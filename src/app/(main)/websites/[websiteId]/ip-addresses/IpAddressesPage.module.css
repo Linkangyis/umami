@@ -1,0 +1,10 @@
+.scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.table {
+  min-width: 880px;
+}
+.rules {
+  min-width: 860px;
+}

@@ -64,6 +64,18 @@ export function useWebsiteNavItems(websiteId: string) {
           path: renderPath('/sessions'),
         },
         {
+          id: 'sources',
+          label: chinese ? '来源分析' : 'Sources analysis',
+          icon: <Network />,
+          path: renderPath('/sources'),
+        },
+        {
+          id: 'content',
+          label: chinese ? '页面分析' : 'Content analysis',
+          icon: <Sheet />,
+          path: renderPath('/content'),
+        },
+        {
           id: 'realtime',
           label: t(labels.realtime),
           icon: <Clock />,
@@ -146,6 +158,12 @@ export function useWebsiteNavItems(websiteId: string) {
           path: renderPath('/segments'),
         },
         {
+          id: 'ip-addresses',
+          label: chinese ? 'IP 分析' : 'IP analysis',
+          icon: <Network />,
+          path: renderPath('/ip-addresses'),
+        },
+        {
           id: 'cohorts',
           label: t(labels.cohorts),
           icon: <UserPlus />,
@@ -161,6 +179,12 @@ export function useWebsiteNavItems(websiteId: string) {
           label: t(labels.utm),
           icon: <Tag />,
           path: renderPath('/utm'),
+        },
+        {
+          id: 'campaigns',
+          label: chinese ? '推广链接' : 'Campaign links',
+          icon: <Tag />,
+          path: renderPath('/campaigns'),
         },
         {
           id: 'revenue',

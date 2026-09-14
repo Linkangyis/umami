@@ -11,6 +11,7 @@ export type Config = {
   pixelsUrl?: string;
   privateMode: boolean;
   sessionDeletionEnabled: boolean;
+  scriptVersions?: { tracker?: string; recorder?: string };
   telemetryDisabled: boolean;
   trackerScriptName?: string;
   updatesDisabled: boolean;

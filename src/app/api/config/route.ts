@@ -1,6 +1,7 @@
 import { isRelationalOnly } from '@/lib/db';
 import { parseRequest } from '@/lib/request';
 import { json } from '@/lib/response';
+import { getScriptVersions } from '@/lib/script-versions';
 import { getPublicAppBranding } from '@/queries/prisma/branding';
 
 export const dynamic = 'force-dynamic';
@@ -20,6 +21,7 @@ export async function GET(request: Request) {
     pixelsUrl: process.env.PIXELS_URL,
     privateMode: !!process.env.PRIVATE_MODE,
     sessionDeletionEnabled: isRelationalOnly(),
+    scriptVersions: await getScriptVersions(),
     telemetryDisabled: !!process.env.DISABLE_TELEMETRY,
     trackerScriptName: process.env.TRACKER_SCRIPT_NAME,
     updatesDisabled: !!process.env.DISABLE_UPDATES,

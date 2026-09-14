@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { getIpAddress, stripPort } from './ip';
+import { matchesIpRule } from './ip-rules';
 
 function headers(init: Record<string, string>) {
   return new Headers(init);
@@ -40,6 +41,31 @@ describe('getIpAddress', () => {
     expect(getIpAddress(headers({ forwarded: 'for=192.0.2.60;proto=http;by=203.0.113.43' }))).toBe(
       '192.0.2.60',
     );
+  });
+
+  test.each([
+    ['for="192.0.2.8"', '192.0.2.8'],
+    ['for="192.0.2.8:4711"', '192.0.2.8'],
+    ['For="[2001:0db8::8]:4711";proto=https', '2001:db8::8'],
+    ['for="[::ffff:192.0.2.8]:4711"', '192.0.2.8'],
+    ['for="[2001:db8::8]:_hidden"', '2001:db8::8'],
+    ['extension="a,b;for=203.0.113.9";for="192.0.2.8",for=203.0.113.2', '192.0.2.8'],
+  ])('parses quoted forwarding nodes without changing header priority: %s', (value, expected) => {
+    expect(getIpAddress(headers({ forwarded: value }))).toBe(expected);
+    expect(getIpAddress(headers({ forwarded: value, 'cf-connecting-ip': '198.51.100.7' }))).toBe(
+      '198.51.100.7',
+    );
+  });
+
+  test('does not replace an unknown first forwarding hop with a later proxy IP', () => {
+    expect(getIpAddress(headers({ forwarded: 'for=unknown,for=203.0.113.9' }))).toBeUndefined();
+    expect(getIpAddress(headers({ forwarded: 'for="_hidden";proto=https' }))).toBeUndefined();
+    expect(getIpAddress(headers({ forwarded: 'for="2001:123"' }))).toBeUndefined();
+  });
+
+  test('quoted IPv6 forwarding addresses match website CIDR exclusions', () => {
+    const ip = getIpAddress(headers({ forwarded: 'for="[2001:db8::8]:4711"' }));
+    expect(matchesIpRule(ip, '2001:db8::/32')).toBe(true);
   });
 
   test('prefers higher-priority vendor headers over x-forwarded-for', () => {
@@ -104,11 +130,14 @@ describe('stripPort', () => {
     expect(stripPort('1.2.3.4')).toBe('1.2.3.4');
   });
 
-  test('keeps only the bracketed portion of a bracketed IPv6 address', () => {
-    expect(stripPort('[::1]:8080')).toBe('[::1]');
+  test('removes both port and brackets from bracketed IPv6', () => {
+    expect(stripPort('[::1]:8080')).toBe('::1');
+    expect(stripPort('[2001:db8::1]')).toBe('2001:db8::1');
   });
 
   test('leaves an unbracketed IPv6 address unchanged', () => {
     expect(stripPort('::1')).toBe('::1');
+    expect(stripPort('::ffff:192.0.2.8')).toBe('::ffff:192.0.2.8');
+    expect(stripPort('2001:123')).toBe('2001:123');
   });
 });

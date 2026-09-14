@@ -166,6 +166,17 @@ test('ungranted optional scopes are rejected', async () => {
   ).rejects.toMatchObject({ status: 403 });
 });
 
+test('a global read-only role immediately revokes writes even on an owned website', async () => {
+  findUnique.mockResolvedValue({ ...record, scopes: ['analytics:read', 'event-rules:write'] });
+  const principal = await loadMcpPrincipal('hash');
+  await expect(requireMcpScope(principal, 'event-rules:write', site)).resolves.toBeTruthy();
+  findUser.mockResolvedValue({ ...user, role: 'view-only' });
+  await expect(requireMcpScope(principal, 'analytics:read', site)).resolves.toBeTruthy();
+  await expect(requireMcpScope(principal, 'event-rules:write', site)).rejects.toMatchObject({
+    status: 403,
+  });
+});
+
 test('unfinished two-factor and share sessions cannot mint MCP tokens', async () => {
   vi.mocked(parseSecureToken).mockReturnValue({ type: 'partial-auth', userId: user.id } as any);
   await expect(

@@ -44,3 +44,9 @@
 - **JSON-RPC `error`**：检查工具名称、参数类型和必填项，并依据返回的错误说明修正。
 
 API 路由：`GET/POST /api/me/mcp-tokens` 管理本人令牌，`DELETE /api/me/mcp-tokens/:id` 撤销，`POST /api/mcp` 执行 MCP 请求。管理接口要求完成登录，统计分享链接和未完成双重验证的临时凭证不能创建令牌。
+
+## 反向代理
+
+MCP 与令牌管理路由必须保留应用返回的 `Cache-Control: no-store` 和来源校验结果。不要给它们统一覆盖 `Access-Control-Allow-Origin: *`，也不要由代理直接响应全部 OPTIONS 请求。
+
+本项目部署环境的 Nginx 已为 `/api/mcp` 和 `/api/me/mcp-tokens` 增加独立转发规则，将跨域和鉴权响应交给应用处理。迁移部署时，应一并检查反向代理和 CDN 的响应头规则。

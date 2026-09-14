@@ -74,6 +74,7 @@ async function currentUser(id: string) {
 }
 
 async function primaryWebsitePermission(auth: Auth, websiteId: string, write = false) {
+  if (write && auth.user?.role === ROLES.viewOnly) return false;
   const database = getMcpDatabase();
   const website = await database.website.findFirst({
     where: { id: websiteId, deletedAt: null },
