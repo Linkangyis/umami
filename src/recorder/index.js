@@ -17,11 +17,10 @@ import { addCustomEvent, record } from 'rrweb';
 
   const isVisualEditor = () => {
     if (window.__umamiEditor) return true;
-    const controller = window.parent !== window ? window.parent : window.opener;
-    if (!controller || controller.closed) return false;
-    if (new URL(location.href).searchParams.get('umami-editor') === website) return true;
+    if (/^[a-f0-9]{48}$/.test(new URL(location.href).searchParams.get('umami-editor') || ''))
+      return true;
     try {
-      return sessionStorage.getItem('umami.editor.website') === website;
+      return /^[a-f0-9]{48}$/.test(sessionStorage.getItem('umami.editor.session') || '');
     } catch {
       return false;
     }

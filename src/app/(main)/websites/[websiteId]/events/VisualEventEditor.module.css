@@ -17,29 +17,6 @@
   flex-wrap: wrap;
   align-items: center;
 }
-.preview {
-  width: 100%;
-  overflow: auto;
-  display: flex;
-  justify-content: center;
-  background: var(--surface-sunken, #f1f5f9);
-  border: 1px solid var(--border-color, #aaa6);
-  border-radius: 8px;
-  padding: 12px;
-}
-.desktopFrame,
-.mobileFrame {
-  border: 0;
-  background: white;
-  height: 680px;
-}
-.desktopFrame {
-  width: 100%;
-}
-.mobileFrame {
-  width: 390px;
-  max-width: 100%;
-}
 .ruleForm {
   display: flex;
   flex-direction: column;
