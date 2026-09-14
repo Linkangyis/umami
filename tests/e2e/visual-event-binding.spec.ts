@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { expect, test } from '@playwright/test';
@@ -125,11 +126,90 @@ test('rejects anonymous session creation and invalid capability IDs with CORS he
     data: { websiteId: randomUUID() },
   });
   expect(create.status()).toBe(401);
-  const invalid = await request.get('/api/event-rules/editor-session/' + 'a'.repeat(48));
+  const invalid = await request.get(`/api/event-rules/editor-session/${'a'.repeat(48)}`);
   expect(invalid.status()).toBe(404);
   expect(invalid.headers()['access-control-allow-origin']).toBe('*');
-  const preflight = await request.fetch('/api/event-rules/editor-session/' + 'a'.repeat(48), {
+  const preflight = await request.fetch(`/api/event-rules/editor-session/${'a'.repeat(48)}`, {
     method: 'OPTIONS',
   });
   expect(preflight.status()).toBe(204);
+});
+
+test('drags the creation and event-list popup while keeping inputs usable and the panel on screen', async ({
+  page,
+}) => {
+  const tracker = await readFile('public/script.js', 'utf8');
+  await page.route('https://drag-target.example/**', route =>
+    route.fulfill({
+      contentType: route.request().url().includes('/script.js')
+        ? 'application/javascript'
+        : 'text/html',
+      body: route.request().url().includes('/script.js')
+        ? tracker
+        : `<!doctype html>
+      <style>body>div{display:none!important}button{margin:150px 50px}</style>
+      <button id="select-me">Select element</button>
+      <script defer src="/script.js" data-website-id="11111111-1111-4111-8111-111111111111" data-host-url="https://analytics.example"></script>`,
+    }),
+  );
+  await page.route('https://analytics.example/**', route =>
+    route.fulfill({
+      contentType: 'application/json',
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({
+        data: [
+          {
+            id: 'one',
+            name: 'Existing event',
+            selector: '#select-me',
+            urlPath: '/',
+            matchType: 'all',
+            eventType: 'click',
+            isEnabled: true,
+          },
+        ],
+      }),
+    }),
+  );
+  await page.goto(`https://drag-target.example/?umami-editor=${'a'.repeat(48)}`);
+  await page.getByRole('button', { name: 'Select element', exact: true }).click();
+  const panel = page.locator('[data-umami-editor-root]').locator('.panel');
+  await expect(panel).toBeVisible();
+  const before = await panel.boundingBox();
+  const title = await panel.locator('h3').boundingBox();
+  if (!before || !title) throw new Error('Editor panel was not visible');
+  await page.mouse.move(title.x + 40, title.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(title.x - 260, title.y + 90, { steps: 8 });
+  await page.mouse.up();
+  const moved = await panel.boundingBox();
+  expect(moved?.x).toBeCloseTo(before.x - 300, 0);
+  expect(moved?.y).toBeCloseTo(before.y + 80, 0);
+  await panel.locator('input').first().fill('dragged-event');
+  await expect(panel.locator('input').first()).toHaveValue('dragged-event');
+  await page.locator('[data-umami-editor-root]').locator('.toolbar button').first().click();
+  await expect(panel.locator('.rule').first()).toBeVisible();
+  expect((await panel.boundingBox())?.x).toBeCloseTo(moved?.x ?? 0, 0);
+  expect((await panel.boundingBox())?.y).toBeCloseTo(moved?.y ?? 0, 0);
+  await page.setViewportSize({ width: 480, height: 400 });
+  await expect
+    .poll(async () => {
+      const rect = await panel.boundingBox();
+      return (
+        !!rect &&
+        rect.x >= 14 &&
+        rect.y >= 14 &&
+        rect.x + rect.width <= 466 &&
+        rect.y + rect.height <= 386
+      );
+    })
+    .toBe(true);
+  const listTitle = await panel.locator('h3').boundingBox();
+  if (!listTitle) throw new Error('Event list title was not visible');
+  await page.mouse.move(listTitle.x + 40, listTitle.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(0, 0, { steps: 8 });
+  await page.mouse.up();
+  expect((await panel.boundingBox())?.x).toBe(14);
+  expect((await panel.boundingBox())?.y).toBe(14);
 });

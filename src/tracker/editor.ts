@@ -136,6 +136,8 @@ export function startVisualEditor({
   const shadow = host.attachShadow({ mode: 'open' });
   const style = document.createElement('style');
   style.textContent = `*{box-sizing:border-box}.toolbar,.panel{position:fixed;top:14px;right:14px;color:#172033;background:#fff;border:1px solid #d7dee8;border-radius:10px;box-shadow:0 6px 24px #0002;font:14px/1.45 system-ui,sans-serif;pointer-events:auto}.toolbar{padding:10px 12px;display:flex;align-items:center;gap:8px}.panel{top:66px;width:min(430px,calc(100vw - 28px));max-height:calc(100vh - 82px);overflow:auto;padding:16px}.panel h3{margin:0 0 12px;font-size:16px}.panel label{display:block;margin:10px 0 4px;font-weight:600}.panel input,.panel select{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font:inherit}.row{display:flex;gap:8px;align-items:center}button{border:1px solid #cbd5e1;border-radius:6px;padding:7px 10px;background:#fff;color:#172033;cursor:pointer;font:inherit}button.primary{background:#2563eb;border-color:#2563eb;color:#fff}button:disabled{opacity:.55;cursor:default}.muted{color:#64748b;font-size:12px}.selected{margin:0 0 12px;padding:9px;background:#effbff;border-radius:6px;overflow-wrap:anywhere}.rule{padding:9px 0;border-bottom:1px solid #e2e8f0}.rule code{display:block;color:#475569;font-size:11px;overflow-wrap:anywhere}.outline{position:fixed;border:2px solid #06b6d4;background:#06b6d414;pointer-events:none}.hover{border-color:#f59e0b;background:#f59e0b20}.error{color:#dc2626;margin-top:8px}`;
+  style.textContent +=
+    '.drag-handle{cursor:grab;touch-action:none;user-select:none}.panel[data-dragging] .drag-handle{cursor:grabbing}';
   const toolbar = document.createElement('div');
   toolbar.className = 'toolbar';
   const status = document.createElement('span');
@@ -160,6 +162,55 @@ export function startVisualEditor({
   let hovered: Element | null = null;
   let frame = 0;
   let listOpen = false;
+  let panelPosition: { left: number; top: number } | null = null;
+  let drag: { pointerId: number; offsetX: number; offsetY: number } | null = null;
+  const positionPanel = (left: number, top: number) => {
+    const rect = panel.getBoundingClientRect();
+    const margin = 14;
+    panelPosition = {
+      left: Math.max(margin, Math.min(left, window.innerWidth - rect.width - margin)),
+      top: Math.max(margin, Math.min(top, window.innerHeight - rect.height - margin)),
+    };
+    panel.style.right = 'auto';
+    panel.style.left = `${panelPosition.left}px`;
+    panel.style.top = `${panelPosition.top}px`;
+  };
+  const keepPanelInView = () => {
+    if (panelPosition && !panel.hidden) positionPanel(panelPosition.left, panelPosition.top);
+  };
+  const panelObserver =
+    typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(keepPanelInView);
+  panelObserver?.observe(panel);
+  panel.addEventListener('pointerdown', event => {
+    if (
+      event.button !== 0 ||
+      !(event.target instanceof Element) ||
+      !event.target.closest('.drag-handle')
+    )
+      return;
+    event.preventDefault();
+    const rect = panel.getBoundingClientRect();
+    drag = {
+      pointerId: event.pointerId,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+    };
+    panel.dataset.dragging = '';
+    panel.setPointerCapture(event.pointerId);
+  });
+  panel.addEventListener('pointermove', event => {
+    if (drag?.pointerId !== event.pointerId) return;
+    positionPanel(event.clientX - drag.offsetX, event.clientY - drag.offsetY);
+  });
+  const endDrag = (event: PointerEvent) => {
+    if (drag?.pointerId !== event.pointerId) return;
+    drag = null;
+    delete panel.dataset.dragging;
+    if (panel.hasPointerCapture(event.pointerId)) panel.releasePointerCapture(event.pointerId);
+  };
+  panel.addEventListener('pointerup', endDrag);
+  panel.addEventListener('pointercancel', endDrag);
+  panel.addEventListener('lostpointercapture', endDrag);
   const request = async (method: string, body?: unknown) => {
     const response = await fetch(apiUrl, {
       method,
@@ -233,6 +284,8 @@ export function startVisualEditor({
   const renderPanel = () => {
     panel.replaceChildren();
     const title = document.createElement('h3');
+    title.className = 'drag-handle';
+    title.title = '按住标题拖动弹窗';
     title.textContent = listOpen ? '已创建事件' : '创建元素点击事件';
     panel.append(title);
     if (listOpen) {
@@ -379,10 +432,6 @@ export function startVisualEditor({
     hovered = targetElement(event);
     scheduleDraw();
   };
-  const onPointerDown = (event: PointerEvent) => {
-    if (event.shiftKey || event.button !== 0 || !targetElement(event)) return;
-    event.preventDefault();
-  };
   const onClick = (event: MouseEvent) => {
     if (event.shiftKey || event.button !== 0) return;
     const element = targetElement(event);
@@ -413,12 +462,14 @@ export function startVisualEditor({
       /* ignored */
     }
     cancelAnimationFrame(frame);
+    panelObserver?.disconnect();
+    drag = null;
     document.removeEventListener('pointermove', onPointerMove, true);
-    window.removeEventListener('pointerdown', onPointerDown, true);
     window.removeEventListener('click', onClick, true);
     document.removeEventListener('keydown', onKeyDown, true);
     window.removeEventListener('scroll', scheduleDraw, true);
     window.removeEventListener('resize', scheduleDraw);
+    window.removeEventListener('resize', keepPanelInView);
     window.removeEventListener('hashchange', onLocationChange);
     window.removeEventListener('popstate', onLocationChange);
     host.remove();
@@ -440,11 +491,11 @@ export function startVisualEditor({
   };
   closeButton.onclick = stop;
   document.addEventListener('pointermove', onPointerMove, true);
-  window.addEventListener('pointerdown', onPointerDown, true);
   window.addEventListener('click', onClick, true);
   document.addEventListener('keydown', onKeyDown, true);
   window.addEventListener('scroll', scheduleDraw, true);
   window.addEventListener('resize', scheduleDraw);
+  window.addEventListener('resize', keepPanelInView);
   window.addEventListener('hashchange', onLocationChange);
   window.addEventListener('popstate', onLocationChange);
   status.textContent = '点击页面元素创建事件';
